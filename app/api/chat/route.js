@@ -649,6 +649,15 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
         allResults.push(...keywordSearch(allNodes, syn, 15));
       }
 
+      // Title-based anchoring: benefit description sections for this term.
+      // Appended after keyword results so they don't displace copay/frequency
+      // pages from their priority slots, but still get included in the pool.
+      const titleWords = [coreTerm, ...synList.map(s => s.split(' ')[0])]
+        .filter(w => w.length > 3);
+      allNodes
+        .filter(n => n.title && titleWords.some(t => n.title.toLowerCase().includes(t)))
+        .forEach(n => allResults.push(n));
+
       const termSeen = new Set();
       let added = 0;
       for (const node of allResults) {
@@ -665,44 +674,68 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
 
   // ── Single-benefit: original keyword + GPT selection path ────────────────
   //
-  // WHY augment: "Podiatry" appears in both the benefits table (page 174, has "$0")
-  // AND the appendix/index (pages 263-267, just mentions the word).
+  // WHY augment: "Podiatry" appears in both the benefits table (has "$0")
+  // AND the appendix/index (just mentions the word).
   // Adding "copayment" to the search boosts cost-table pages over index pages.
   const augmentedQuery = queryType === 'benefit' ? `${searchQuery} copayment` : searchQuery;
   const keywordCandidates = keywordSearch(allNodes, searchQuery, 30);
   const augCandidates     = queryType === 'benefit' ? keywordSearch(allNodes, augmentedQuery, 15) : [];
   const anchorPages       = allNodes.slice(0, 25);
 
+  // Title-based anchoring: find sections whose HEADING contains query keywords.
+  // WHY: benefit description pages (allowance amount, vendor name, frequency,
+  // how-to-access) live in named sections like "Supplemental Dental Benefits"
+  // or "Routine Vision Services" — their body text differs from the benefits
+  // chart so keyword search misses them, but their TITLES are reliable signals.
+  // Example: "Supplemental Dental Benefits" has "$2,000 allowance • Cigna DPPO"
+  // but the body text doesn't say "dental copayment" — keyword search skips it.
+  const titleTerms = searchQuery.toLowerCase()
+    .replace(/[*()[\]?/\\]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3);
+  const titleMatches = allNodes.filter(n =>
+    n.title && titleTerms.some(t => n.title.toLowerCase().includes(t))
+  );
+
   const seen = new Set(), candidates = [];
-  [...keywordCandidates, ...augCandidates, ...anchorPages].forEach(n => {
+  // Title matches inserted BEFORE anchorPages so GPT sees them near the top of the directory
+  [...keywordCandidates, ...augCandidates, ...titleMatches, ...anchorPages].forEach(n => {
     if (!seen.has(n.nodeId)) { seen.add(n.nodeId); candidates.push(n); }
   });
 
-  const nodeDirectory = buildNodeDirectory(candidates, 55);
+  const nodeDirectory = buildNodeDirectory(candidates, 60);
 
   const selectionPrompt =
 `You are a healthcare EOC (Evidence of Coverage) document navigator.
 Select the ${nodeLimit} most relevant sections from "${stored.filename}" for the search query.
 
-EOC DOCUMENT STRUCTURE — use this to guide your selection:
-- Pages 1-25:    Plan overview, service area, eligibility, member ID, contact info
-- Pages 25-80:   Medical benefits introduction, prior authorization rules
-- Pages 80-200:  BENEFITS CHART — the main table of covered services and costs
-                 (copayments, coinsurance, prior auth). THIS IS WHERE SPECIFIC
-                 SERVICE COSTS ARE LISTED (acupuncture, podiatry, dental, etc.)
-- Pages 200-280: Prescription drug coverage, formulary tiers, Part D
-- Pages 280-350: Exclusions, appeals, grievances, legal notices
+HOW TO SELECT — use SECTION TITLES and content signals, not page number ranges.
+Page ranges vary widely across plan documents; section titles are consistent.
+
+Read the "| Section title —" label in each directory entry to guide selection:
+
+- Titled "[Benefit Name] Benefit/Benefits/Coverage/Services"
+  e.g. "Supplemental Dental Benefits", "Routine Vision Services", "OTC Benefit"
+  → ALWAYS include these: they contain allowance amount, vendor/network name,
+    frequency limits, eligibility rules, and how to access the benefit.
+
+- Titled "Benefits Chart", "Medical Benefits Chart", "What You Pay", "Your Costs"
+  → contain copayments, coinsurance amounts, prior auth flags per service row.
+
+- Titled "Service Area", "Plan Overview", "About Your Plan", "Eligibility"
+  → contain counties covered, enrollment rules, member ID, contact numbers.
+
+- Titled "Drug Coverage", "Formulary", "Prescription Drug", "Part D"
+  → contain drug tiers, pharmacy network, formulary details.
 
 SELECTION RULES:
-1. For any specific SERVICE, COST, or COPAYMENT query → select pages in the
-   80-200 range (Benefits Chart). The answer is almost always there.
-2. For SERVICE AREA, COUNTIES, ELIGIBILITY → select pages 1-25.
-3. For DRUG COVERAGE, FORMULARY, PRESCRIPTION → select pages 200-280.
-4. The DIRECTORY below shows page numbers — use the structure above to pick
-   the right range, even if keyword matches point elsewhere.
-5. ALWAYS include at least 2-3 pages from the Benefits Chart (80-200) for
-   any benefit/cost query. Do not skip this range.
-6. Cast a wide net — better to over-select than miss the answer.
+1. BENEFIT DESCRIPTION (vendor, allowance, frequency, how-to-access):
+   → prioritize sections whose TITLE contains the benefit name.
+2. COST / COPAYMENT:
+   → prioritize sections titled "Benefits Chart" / "What You Pay" or containing the service name.
+3. ALWAYS include BOTH the benefit description section (title match) AND the
+   benefits chart entry (keyword match) — they contain DIFFERENT information.
+4. Cast a wide net — better to over-select than miss the answer.
 
 Return ONLY a JSON array of section ID strings e.g. ["7","90","141"].
 
@@ -1094,7 +1127,7 @@ Query type detected: ${queryType}`;
             return { filename: doc.filename, nodes: getNodeContents(allNodes, retryNodes.map(n => String(n.nodeId))) };
           }
 
-          // Single-benefit retry: wider keyword search + GPT selection
+          // Single-benefit retry: wider keyword search + title anchoring + GPT selection
           const seenR = new Set(), wider = [];
           keywordSearch(allNodes, searchQuery, 50).forEach(n => {
             if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
@@ -1104,6 +1137,17 @@ Query type detected: ${queryType}`;
               if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
             });
           }
+          // Title anchoring in retry — catches benefit description pages
+          // (allowance, vendor, frequency) missed by the first pass
+          const retryTitleTerms = searchQuery.toLowerCase()
+            .replace(/[*()[\]?/\\]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 3);
+          allNodes
+            .filter(n => n.title && retryTitleTerms.some(t => n.title.toLowerCase().includes(t)))
+            .forEach(n => {
+              if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
+            });
           allNodes.slice(0, 30).forEach(n => {
             if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
           });
@@ -1113,15 +1157,19 @@ Query type detected: ${queryType}`;
 `You are a healthcare EOC document navigator — RETRY ATTEMPT.
 The previous retrieval did NOT find the answer. You must look more broadly.
 
-EOC STRUCTURE:
-- Benefits Chart (main cost table): pages 80-250 — THIS IS THE MOST IMPORTANT RANGE
-- Service area / eligibility: pages 1-30
-- Drug coverage: pages 200-300
+HOW TO SELECT — use SECTION TITLES, not page number ranges (structure varies per plan).
+
+- Sections titled "[Benefit Name] Benefit/Benefits/Coverage"
+  → contain allowance amount, vendor/network, frequency, how-to-access.
+- Sections titled "Benefits Chart" / "What You Pay" / "Your Costs"
+  → contain copayments and coinsurance per service row.
+- Sections titled "Service Area" / "Eligibility" / "Plan Overview"
+  → contain counties, enrollment rules, contact info.
 
 For query "${searchQuery}", the answer MUST exist in this document.
 Select the ${retryNodeLimit} most likely sections.
-Prioritize pages 80-250 (Benefits Chart). Cast the widest possible net.
-Return ONLY a JSON array of section IDs.
+Prioritize sections whose TITLE matches the benefit name AND benefit chart sections.
+Cast the widest possible net. Return ONLY a JSON array of section IDs.
 
 Section directory:
 ${dir}`;
