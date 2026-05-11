@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(Select-String -Path \"d:\\\\EOCDental\\\\healthworks-rag-pageindex_dev\\\\public\\\\metadata\\\\eoc_metadata.csv\" -Pattern \"Alameda\")",
-      "Bash(Select-Object Line)"
+      "Bash(Select-Object Line)",
+      "Read(//d/EOCDental/healthworkseocdemo/**)",
+      "Bash(cat next.config.js)",
+      "Bash(cat next.config.mjs)"
     ]
   }
 }
