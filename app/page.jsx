@@ -760,7 +760,10 @@ export default function Home() {
         nodeCount: 0,
         status: 'indexing', progress: 'Queued…', error: null,
       })));
-      await Promise.all(files.map(f => indexOne(f.name)));
+      const BATCH = 50;
+      for (let i = 0; i < files.length; i += BATCH) {
+        await Promise.all(files.slice(i, i + BATCH).map(f => indexOne(f.name)));
+      }
     } catch(err) { console.error('autoIndexAll error:', err); }
     finally { setStartupDone(true); }
   };
