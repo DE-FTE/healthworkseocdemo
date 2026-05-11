@@ -10,7 +10,7 @@
  * browser, it fetches the PDF from the configured storage location:
  *
  *   PDF_SOURCE=local        → reads from /pdfs/<filename>
- *   PDF_SOURCE=vercel-blob  → downloads from Vercel Blob by filename
+ *   PDF_SOURCE=r2           → downloads from Cloudflare R2 by filename
  *
  * Then runs the EXACT SAME indexing pipeline as before:
  *
@@ -132,8 +132,8 @@ export async function POST(request) {
           structure,
         });
 
-        // ── Persist to Blob so other Vercel instances can load it ────────────
-        // saveTreeIndexToBlob is a no-op when PDF_SOURCE !== 'vercel-blob'
+        // ── Persist to R2 so other Vercel instances can load it ─────────────
+        // saveTreeIndexToBlob is a no-op when PDF_SOURCE !== 'r2'
         await saveTreeIndexToBlob(docId, saved);
 
         // ── Save to registry so this docId is reused on next startup ─────────

@@ -299,6 +299,282 @@ const BENEFIT_SYNONYMS = {
   outpatient:         ['outpatient', 'ambulatory'],
 };
 
+// ─── Category detector — maps query to structured benefit schemas ─────────────
+//
+// Detects which of the 12 benefit categories (from schemas.py) are relevant to
+// the current query. The detected list drives getCategoryInstructions() which
+// injects per-category field guides into the Phase 3 system prompt.
+const CATEGORY_PATTERNS = [
+  { category: 'Dental',                   re: /\b(dental|oral|teeth|fluoride|cavity|filling|root canal|crown|orthodontic|periodon)\b/i },
+  { category: 'Vision',                   re: /\b(vision|eye exam|optometric|optometry|eye care|eyewear|glasses|contacts|lenses|frames|spectacle)\b/i },
+  { category: 'Hearing',                  re: /\b(hearing|hearing aid|audiolog|auditory|audiometric|ear exam|tinnitus|otc hearing)\b/i },
+  { category: 'OTC/Flex Card',            re: /\b(otc|over.the.counter|flex card|flex benefit|healthy today|allowance card|supplemental card)\b/i },
+  { category: 'Transportation',           re: /\b(transport|nemt|rideshare|medical transport|non.emergency|trip limit|mileage limit|ride)\b/i },
+  { category: 'Fitness / Wellness',       re: /\b(fitness|gym|workout|silversneakers|silver.?fit|renew active|wellness|exercise|tivity health)\b/i },
+  { category: 'Meals/Grocery',            re: /\b(meal|grocery|food|produce|post.discharge meal|home delivered|healthy food|grocery card)\b/i },
+  { category: 'Alternative Therapies',    re: /\b(chiropractic|chiropractor|acupuncture|spinal manipulation|alternative therap|massage therap)\b/i },
+  { category: 'In-Home Support / Safety', re: /\b(pers|in.home|home safety|personal emergency response|grab bar|shower chair|home health visit|personal care hour)\b/i },
+  { category: 'Telehealth / Remote Tech', re: /\b(telehealth|telemedicine|virtual visit|virtual care|video visit|phone visit|remote tech|teladoc|amwell)\b/i },
+  { category: 'Rewards & Incentives',     re: /\b(reward|incentive|healthy action|earn credit|wallet credit|member reward|points)\b/i },
+  { category: 'SSBCI / VBID',            re: /\b(ssbci|vbid|chronically ill|chronic condition|value.based insurance|special supplement|primarily health)\b/i },
+];
+
+function detectBenefitCategories(message, searchQuery, benefitTerms = []) {
+  const text = [message, searchQuery, ...benefitTerms].join(' ').toLowerCase();
+  return CATEGORY_PATTERNS.filter(({ re }) => re.test(text)).map(({ category }) => category);
+}
+
+// ─── Category instructions builder — JS port of schemas.py get_category_instructions()
+//
+// For each detected category injects a precise field guide into the GPT-4o system
+// prompt so the model knows exactly which fields to look for, their expected format,
+// and when to say "Not specified" vs reporting a value.
+//
+// WHY THIS HELPS:
+//   Without this, GPT-4o answers Vision queries as generic "coverage: yes, copay: $0"
+//   and misses: eyewear_allowance, diabetic_eye_exam_copay, routine_eye_exam_visits,
+//   eyewear_combined vs individual max, prior auth normalization rules, etc.
+//   With this, GPT-4o knows the 13 Vision fields by name and scans for all of them.
+function getCategoryInstructions(categories) {
+  if (!categories || categories.length === 0) return '';
+
+  const parts = [];
+
+  if (categories.includes('Dental')) {
+    parts.push(`
+  DENTAL — look for ALL these fields; report each explicitly:
+  • preventive_dental_financial_cap      → "amount=$X | period=<year|quarter|month> | type=<Annual_Max|Allowance|Schedule|Copay>"
+  • comprehensive_dental_financial_cap   → same format
+  • dental_financial_cap_structure       → "Combined – <note>" if one cap covers both; "Separate – <note>" if distinct caps exist
+  • preventive_dental_max_coverage_amount    → "$X" amount only
+  • comprehensive_dental_max_coverage_amount → "$X" amount only
+  • prior_auth_required          → "Yes – <criteria>" or "No" (normalize any partial/conditional to "Yes – <criteria>")
+  • frequency_limits             → compact string e.g. "Cleanings: 2/yr; Exams: 1/yr; X-rays: bitewing/12mo"
+  • historical_records           → "C – <note>" | "NC – <note>" | "NS"
+  • exclusions                   → short notes only — cosmetic, implants, waiting periods (NO C/NC/NS tokens here)
+  • vendor_network               → exact vendor/network text (e.g. "Cigna Dental Allowance (DPPO)")
+  • general_conditions           → short operational note (e.g. "Use DPPO network; provider bills plan; no carryover")
+  KEY RULE: A single combined allowance covering both preventive+comprehensive → set cap_structure = "Combined – …" and both individual caps = null.`);
+  }
+
+  if (categories.includes('Vision')) {
+    parts.push(`
+  VISION — look for ALL these fields; report each explicitly:
+  • vision_covered                           → "C" or "NC" + brief note
+  • routine_eye_exam_copay                   → "$X per 12 mo" or "$X per visit"
+  • diabetic_eye_exam_copay                  → "$X per period"
+  • eyewear_allowance                        → "$X / year • frames+lenses OR contacts" (preserve either/or wording)
+  • routine_eye_exam_visits                  → "1/yr", "2 per year", etc.
+  • other_eye_exam_visits                    → N/period for glaucoma screening or other exam types if stated
+  • eye_exams_max_coverage_amount            → "$X" amount only
+  • eyewear_individual_max_coverage_amount   → "$X" for individual components (frames-only or lenses-only cap)
+  • eyewear_combined_max_coverage_amount     → "$X" when frames+lenses/contacts share one pool
+  • prior_auth_required          → "Yes – <criteria>" or "No" (normalize any conditional to "Yes – <criteria>")
+  • referral_required            → "No" | "Partial" | "Yes" (null if not stated)
+  • exclusions                   → short notes only (non-prescription eyewear, cosmetic tints, premium add-ons)
+  • vendor                       → "EyeMed", "VSP", "Davis", "in-house", etc.
+  KEY RULE: Eyewear allowance often covers EITHER frames+lenses OR contacts — always preserve the either/or wording.`);
+  }
+
+  if (categories.includes('Hearing')) {
+    parts.push(`
+  HEARING — look for ALL these fields; report each explicitly:
+  • hearing_covered                      → "C" or "NC" + brief note
+  • benefit_structure                    → one of: Allowance | Copay_by_Tier | Coinsurance | Schedule + short note
+  • routine_hearing_exam_copay           → "$X per visit" or "$X per year (N/yr)"
+  • advanced_premium_aids_cost_share     → if Copay_by_Tier: {"Standard":"$X","Premium":"$Y"}; if Allowance: "$X per ear / period"
+  • otc_hearing_aid_allowance            → "$X / period • OTC only" if applicable
+  • batteries_per_aid                    → integer (cells/aid) or "kit-based"
+  • battery_supply_duration              → "48 months", "per 4 years"
+  • trial_period                         → "60 days", etc.
+  • warranty                             → "C • N yrs • repair + loss/damage" | "NC" | "NS"
+  • hearing_exams_max_coverage_amount    → "$X" amount only
+  • hearing_aids_max_coverage_amount     → "$X" amount only
+  • otc_hearing_aids_max_coverage_amount → "$X" amount only
+  • vendor_program                       → "TruHearing", "NationsHearing", "in-house"
+  • exclusions                           → short notes (implants, cosmetic upgrades, OON vendor)
+  KEY RULE: Hearing aids are often tiered (Standard / Advanced / Premium) with different cost shares per tier — report all tiers found.`);
+  }
+
+  if (categories.includes('OTC/Flex Card')) {
+    parts.push(`
+  OTC / FLEX CARD — look for ALL these fields; report each explicitly:
+  • covered                      → "C" or "NC" + brief note
+  • wallet_type                  → "OTC" or "Flex" + brief note
+  • card_wallet_name             → exact member-facing name (e.g. "Cigna Healthy Today")
+  • vendor                       → program admin (e.g. "InComm", "Solutran", "Service Center")
+  • allowance_amount             → "$X" amount only
+  • allowance_period             → "per month" | "per quarter" | "per year"
+  • carryover_allowed            → "Y" | "N" | "NS" + note if exceptions apply
+  • purchase_channels            → "online; phone; mail catalog; in-store"
+  • network_requirement          → "Participating only" | "Any retailer"
+  • funding_mechanism            → "Prepaid card" | "Barcode/Voucher" | "Catalog credit"
+  • buying_limits                → e.g. "catalog ≤1 order/mo"
+  • shipping_threshold           → {"Min_Order_Amount":"$X","Shipping_Covered":"Y/N"} or null
+  • eligible_products            → short list (OTC meds, health supplies, excludes Part B/D)
+  • product_list_ref             → URL or locator text to product catalog
+  • otc_max_coverage_amount      → "$X" annual/period max
+  KEY RULE: Note whether unused balance rolls over or expires at end of quarter/year — this is a key plan differentiator.`);
+  }
+
+  if (categories.includes('Transportation')) {
+    parts.push(`
+  TRANSPORTATION — look for ALL these fields; report each explicitly:
+  • covered                          → "C" or "NC" + brief note
+  • transport_type                   → "NEMT" | "Rideshare" | "Both" + note (taxi, van, medical transport, etc.)
+  • rideshare_allowed                → "Y" | "N" | "NS"
+  • vendor                           → "Modivcare", "in-house", etc.
+  • copay                            → "$X per one-way trip" or "Y%"
+  • trip_limit                       → "<N> / year • one-way" or "<N> / mo • round-trip"
+  • mileage_limit_per_trip           → "<N> miles • one-way"
+  • scheduling_window                → "<N> hours in advance"
+  • cancelling_window                → "<N> hours before pickup"
+  • geographic_limitation            → County / Sub-county / Zip/Radius / None + detail
+  • wallet_funded_rides              → "C – <Wallet> • Funding: $X / period • Carryover: Y/N" | "NC" | "NS"
+  • transport_max_coverage_amount    → "$X" amount only
+  KEY RULE: Trip limits are usually stated as one-way trips, not round-trips — confirm which unit is used.`);
+  }
+
+  if (categories.includes('Fitness / Wellness')) {
+    parts.push(`
+  FITNESS / WELLNESS — look for ALL these fields; report each explicitly:
+  • covered                          → "C" or "NC" + brief note
+  • digital_fitness_platform         → "C • [app, portal, on-demand videos, phone/video/chat coaching]" | "NC" | "NS"
+  • program_name                     → "SilverSneakers", "Silver&Fit", "Renew Active", etc.
+  • vendor                           → "Tivity Health", "in-house", plan vendor wording
+  • network_requirement              → "In-network only" | "OON reimbursed" | "Any"
+  • gym_membership_included          → "C" | "NC" | "NS"
+  • copay                            → "$0 per visit", "$25/month", "20%"
+  • home_fitness_kit                 → "C – one kit/yr (wearable tracker, options)" | "NC" | "NS"
+  • wellness_digital_credits         → "$X / period • Rollover: Y/N"
+  • eligible_uses_credits            → short list (classes, devices, wellness store)
+  • exclusions                       → non-standard services with added fees, etc.
+  • general_conditions               → how to enroll, use partner gyms, etc.
+  KEY RULE: Many plans have BOTH a gym membership AND a separate digital fitness platform — report both independently.`);
+  }
+
+  if (categories.includes('Meals/Grocery')) {
+    parts.push(`
+  MEALS / GROCERY — look for ALL these fields; report each explicitly:
+  • covered                              → "C" or "NC" + brief note
+  • grocery_allowance                    → "$X" amount only
+  • allowance_period                     → "per month" | "per quarter" | "per year"
+  • carryover_allowed                    → "Y" | "N" | "NS"
+  • payment_method                       → "Prepaid card; Catalog/Shipment; Retail voucher/Barcode"
+  • purchase_channels                    → "in-store; online; phone order; participating retailers"
+  • eligible_food_items                  → short list (produce, pantry staples, excludes hot prepared foods)
+  • wallet_name                          → member-facing label (e.g. "Healthy Food Card")
+  • vendor                               → program admin (e.g. "Solutran")
+  • post_discharge_meals_covered         → "C" | "NC" | "NS"
+  • post_discharge_meals_count           → integer (meals per discharge/episode)
+  • post_discharge_meals_window          → "within N days • up to M×/yr"
+  • post_discharge_meals_copay           → "$X per episode" or "$0"
+  • exclusions                           → e.g. "ER/observation/outpatient discharge not eligible"
+  KEY RULE: Many plans have BOTH a grocery card allowance AND a separate post-discharge meals benefit — always report both.`);
+  }
+
+  if (categories.includes('Alternative Therapies')) {
+    parts.push(`
+  ALTERNATIVE THERAPIES — look for ALL these fields; report each explicitly:
+  • chiropractic_covered                 → "Covered" | "Not Covered" + note
+  • chiropractic_cost_share              → "$X copay per visit" or "Y% coinsurance"
+  • chiropractic_visit_limit             → "<N> visits per year"
+  • chiropractic_routine_care_visits     → "<N> per year" (routine care)
+  • chiropractic_other_care_visits       → "<N> per year" (other/non-routine)
+  • acupuncture_visits                   → "<N> per year"
+  • chiropractic_max_coverage_amount     → "$X" amount only
+  • acupuncture_max_coverage_amount      → "$X" amount only
+  • combined_visit_cap                   → combined limit across therapies (e.g. "20/yr • [chiro, acupuncture, massage]")
+  • network_requirement                  → "In-network only" | "OON reimbursed"
+  • prior_auth                           → "No" | "Partial – <criteria>" | "Yes – <criteria>"
+  • referral_required                    → "No" | "Yes – PCP referral required" | "Partial"
+  KEY RULE: Check whether chiropractic and acupuncture share a combined visit pool or have separate independent limits.`);
+  }
+
+  if (categories.includes('In-Home Support / Safety')) {
+    parts.push(`
+  IN-HOME SUPPORT / SAFETY — look for ALL these fields; report each explicitly:
+  • covered                              → "Covered" | "Not Covered"
+  • pers_device_provided                 → "PERS provided" | "PERS rental available" | "Not provided"
+  • installation_setup_covered           → "Installation covered" | "Member pays installation"
+  • pers_monthly_monitoring_fee          → "$0/month", "$29.99/month", etc.
+  • vendor_pers                          → "Lifeline", "Aloecare", "in-house"
+  • home_health_visits_copay             → "$X per visit" or "Y%"
+  • personal_care_hours                  → "20 hours/year", "8 hours/month"
+  • home_safety_devices_allowance        → "$X allowance"
+  • allowance_period                     → "per year" | "one-time"
+  • safety_devices_list                  → "grab bars, shower chair, raised toilet seat"
+  • bathroom_safety_devices              → specific bathroom device details
+  • prior_auth                           → "No" | "Yes – for >$X devices or >N visits"
+  KEY RULE: PERS (Personal Emergency Response System) monitoring is distinct from the home safety device allowance — report them separately.`);
+  }
+
+  if (categories.includes('Telehealth / Remote Tech')) {
+    parts.push(`
+  TELEHEALTH / REMOTE TECH — look for ALL these fields; report each explicitly:
+  • covered                              → "Covered" | "Not Covered"
+  • platform_vendor                      → "Teladoc", "Amwell", "in-house", etc.
+  • network_requirement                  → "Plan platform only" | "Any in-network provider"
+  • eligible_modalities                  → "video, phone, secure message"
+  • modality_cost_share_rule             → e.g. "Phone = same as video; eVisit = $0"
+  • virtual_pcp_copay                    → copay/coinsurance + period
+  • virtual_specialist_copay             → copay/coinsurance
+  • virtual_pt_st_copay                  → PT/ST virtual copay
+  • virtual_health_coaching              → "Covered • phone, video, portal" or null
+  • referral_required                    → "No" | "Yes – PCP referral required"
+  • prior_auth                           → "No" | "Yes – beyond N visits"
+  KEY RULE: Virtual PCP and virtual specialist usually have different copays — always report both separately.`);
+  }
+
+  if (categories.includes('Rewards & Incentives')) {
+    parts.push(`
+  REWARDS & INCENTIVES — look for ALL these fields; report each explicitly:
+  • program_present              → "Covered" | "Not Covered"
+  • program_name                 → "Healthy Actions", "Member Rewards", etc.
+  • trigger_types                → list of activating actions (PCP visit, AWV, HRA completion, vaccinations)
+  • per_activity_reward          → "$X per AWV" or {"HRA":"$5","PCP":"$10"}
+  • annual_cap                   → "$X per year" or "No cap"
+  • delivery_mode                → "card load", "wallet credit", "gift card catalog"
+  • otc_wallet_funding           → "loads_to_OTC_card" | "separate_rewards_card" | "digital_points_only"
+  • redemption_channels          → "OTC catalog, retail, online portal, gift card catalog"
+  • vendor_platform              → "in-house", "Virgin Pulse", etc.
+  • rollover_allowed             → "Yes" | "No" | "Not specified"
+  KEY RULE: Rewards may load directly to the OTC card balance — check whether it is the same card or a separate wallet.`);
+  }
+
+  if (categories.includes('SSBCI / VBID')) {
+    parts.push(`
+  SSBCI / VBID — look for ALL these fields; report each explicitly:
+  • covered                              → "Covered" | "Not Covered"
+  • eligibility_criteria                 → targeting rules (e.g. "Diabetes diagnosis + PCP attestation")
+  • verification_method                  → "claims-based" | "provider attestation" | "case management"
+  • enrollment_process                   → steps to activate (referral, form, annual re-eval)
+  • wallet_structure                     → "category wallets • monthly reload • carryover: No"
+  • payment_delivery                     → "preloaded prepaid card" | "direct shipment" | "voucher/barcode"
+  • vendor                               → "Solutran", "HealthyBenefits", "in-house"
+  • food_grocery_allowance               → "$X / month • produce & pantry staples"
+  • pest_control                         → "$X one-time • inspection + 1 treatment"
+  • general_support_for_living           → "home modifications up to $X; taxi vouchers"
+  • indoor_air_quality                   → "HEPA filter $X; HVAC cleaning $X max"
+  • documentation_required               → "invoice + photo; clinician note optional"
+  • exclusions                           → "no alcohol; landlord permission required for rental mod"
+  • additional_health_benefits           → short list/dict of "benefit: $X / period" for other health-related items
+  KEY RULE: SSBCI/VBID benefits are condition-targeted (not universal) — always state the eligibility condition alongside each dollar amount.`);
+  }
+
+  if (parts.length === 0) return '';
+
+  return `──────────────────────────────────────────────────────────────────
+CATEGORY-SPECIFIC EXTRACTION GUIDE
+──────────────────────────────────────────────────────────────────
+The query involves the following benefit category/categories. For each,
+scan ALL provided document sections for the listed fields. Report EVERY
+field explicitly — do not skip fields because they seem minor or unlikely.
+Distinguish: null/not stated = "Not specified" | not covered = "Not covered" | present but unclear = quote the ambiguous text.
+${parts.join('\n')}
+──────────────────────────────────────────────────────────────────`;
+}
+
 // ─── PHASE 2b: Keyword selection (benefit queries) ────────────────────────────
 
 async function selectNodesForDoc(stored, searchQuery, queryType = 'general', benefitTerms = []) {
@@ -373,6 +649,15 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
         allResults.push(...keywordSearch(allNodes, syn, 15));
       }
 
+      // Title-based anchoring: benefit description sections for this term.
+      // Appended after keyword results so they don't displace copay/frequency
+      // pages from their priority slots, but still get included in the pool.
+      const titleWords = [coreTerm, ...synList.map(s => s.split(' ')[0])]
+        .filter(w => w.length > 3);
+      allNodes
+        .filter(n => n.title && titleWords.some(t => n.title.toLowerCase().includes(t)))
+        .forEach(n => allResults.push(n));
+
       const termSeen = new Set();
       let added = 0;
       for (const node of allResults) {
@@ -389,44 +674,68 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
 
   // ── Single-benefit: original keyword + GPT selection path ────────────────
   //
-  // WHY augment: "Podiatry" appears in both the benefits table (page 174, has "$0")
-  // AND the appendix/index (pages 263-267, just mentions the word).
+  // WHY augment: "Podiatry" appears in both the benefits table (has "$0")
+  // AND the appendix/index (just mentions the word).
   // Adding "copayment" to the search boosts cost-table pages over index pages.
   const augmentedQuery = queryType === 'benefit' ? `${searchQuery} copayment` : searchQuery;
   const keywordCandidates = keywordSearch(allNodes, searchQuery, 30);
   const augCandidates     = queryType === 'benefit' ? keywordSearch(allNodes, augmentedQuery, 15) : [];
   const anchorPages       = allNodes.slice(0, 25);
 
+  // Title-based anchoring: find sections whose HEADING contains query keywords.
+  // WHY: benefit description pages (allowance amount, vendor name, frequency,
+  // how-to-access) live in named sections like "Supplemental Dental Benefits"
+  // or "Routine Vision Services" — their body text differs from the benefits
+  // chart so keyword search misses them, but their TITLES are reliable signals.
+  // Example: "Supplemental Dental Benefits" has "$2,000 allowance • Cigna DPPO"
+  // but the body text doesn't say "dental copayment" — keyword search skips it.
+  const titleTerms = searchQuery.toLowerCase()
+    .replace(/[*()[\]?/\\]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3);
+  const titleMatches = allNodes.filter(n =>
+    n.title && titleTerms.some(t => n.title.toLowerCase().includes(t))
+  );
+
   const seen = new Set(), candidates = [];
-  [...keywordCandidates, ...augCandidates, ...anchorPages].forEach(n => {
+  // Title matches inserted BEFORE anchorPages so GPT sees them near the top of the directory
+  [...keywordCandidates, ...augCandidates, ...titleMatches, ...anchorPages].forEach(n => {
     if (!seen.has(n.nodeId)) { seen.add(n.nodeId); candidates.push(n); }
   });
 
-  const nodeDirectory = buildNodeDirectory(candidates, 55);
+  const nodeDirectory = buildNodeDirectory(candidates, 60);
 
   const selectionPrompt =
 `You are a healthcare EOC (Evidence of Coverage) document navigator.
 Select the ${nodeLimit} most relevant sections from "${stored.filename}" for the search query.
 
-EOC DOCUMENT STRUCTURE — use this to guide your selection:
-- Pages 1-25:    Plan overview, service area, eligibility, member ID, contact info
-- Pages 25-80:   Medical benefits introduction, prior authorization rules
-- Pages 80-200:  BENEFITS CHART — the main table of covered services and costs
-                 (copayments, coinsurance, prior auth). THIS IS WHERE SPECIFIC
-                 SERVICE COSTS ARE LISTED (acupuncture, podiatry, dental, etc.)
-- Pages 200-280: Prescription drug coverage, formulary tiers, Part D
-- Pages 280-350: Exclusions, appeals, grievances, legal notices
+HOW TO SELECT — use SECTION TITLES and content signals, not page number ranges.
+Page ranges vary widely across plan documents; section titles are consistent.
+
+Read the "| Section title —" label in each directory entry to guide selection:
+
+- Titled "[Benefit Name] Benefit/Benefits/Coverage/Services"
+  e.g. "Supplemental Dental Benefits", "Routine Vision Services", "OTC Benefit"
+  → ALWAYS include these: they contain allowance amount, vendor/network name,
+    frequency limits, eligibility rules, and how to access the benefit.
+
+- Titled "Benefits Chart", "Medical Benefits Chart", "What You Pay", "Your Costs"
+  → contain copayments, coinsurance amounts, prior auth flags per service row.
+
+- Titled "Service Area", "Plan Overview", "About Your Plan", "Eligibility"
+  → contain counties covered, enrollment rules, member ID, contact numbers.
+
+- Titled "Drug Coverage", "Formulary", "Prescription Drug", "Part D"
+  → contain drug tiers, pharmacy network, formulary details.
 
 SELECTION RULES:
-1. For any specific SERVICE, COST, or COPAYMENT query → select pages in the
-   80-200 range (Benefits Chart). The answer is almost always there.
-2. For SERVICE AREA, COUNTIES, ELIGIBILITY → select pages 1-25.
-3. For DRUG COVERAGE, FORMULARY, PRESCRIPTION → select pages 200-280.
-4. The DIRECTORY below shows page numbers — use the structure above to pick
-   the right range, even if keyword matches point elsewhere.
-5. ALWAYS include at least 2-3 pages from the Benefits Chart (80-200) for
-   any benefit/cost query. Do not skip this range.
-6. Cast a wide net — better to over-select than miss the answer.
+1. BENEFIT DESCRIPTION (vendor, allowance, frequency, how-to-access):
+   → prioritize sections whose TITLE contains the benefit name.
+2. COST / COPAYMENT:
+   → prioritize sections titled "Benefits Chart" / "What You Pay" or containing the service name.
+3. ALWAYS include BOTH the benefit description section (title match) AND the
+   benefits chart entry (keyword match) — they contain DIFFERENT information.
+4. Cast a wide net — better to over-select than miss the answer.
 
 Return ONLY a JSON array of section ID strings e.g. ["7","90","141"].
 
@@ -567,6 +876,11 @@ Table:
     // Extract individual benefit terms for multi-benefit queries
     // e.g. "[ Acupuncture Copay, Podiatry Copay, Emergency Care Copay ]" → 3 terms
     const benefitTerms = extractBenefitTerms(message);
+    // Detect which of the 12 schema categories apply — drives per-category field
+    // injection in the Phase 3 system prompt (only runs for benefit/general queries)
+    const detectedCategories = (queryType === 'benefit' || queryType === 'general')
+      ? detectBenefitCategories(message, searchQuery, benefitTerms)
+      : [];
 
     // ── PHASE 1: Local pre-filtering (zero API calls) ───────────────────────
     const { docs: targetDocs, missingDocs } = filterRelevantDocs(allLoadedDocs, searchQuery, queryType, docTargets);
@@ -745,7 +1059,7 @@ RULES:
 - Match "type" exactly to what user asks
 - Always write a brief text explanation BEFORE the [CHART] block
 ──────────────────────────────────────────────────────────────────
-
+${getCategoryInstructions(detectedCategories)}
 Documents provided for this query: ${docNamesList}
 All documents loaded in system: ${allDocNames}
 Query type detected: ${queryType}`;
@@ -813,7 +1127,7 @@ Query type detected: ${queryType}`;
             return { filename: doc.filename, nodes: getNodeContents(allNodes, retryNodes.map(n => String(n.nodeId))) };
           }
 
-          // Single-benefit retry: wider keyword search + GPT selection
+          // Single-benefit retry: wider keyword search + title anchoring + GPT selection
           const seenR = new Set(), wider = [];
           keywordSearch(allNodes, searchQuery, 50).forEach(n => {
             if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
@@ -823,6 +1137,17 @@ Query type detected: ${queryType}`;
               if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
             });
           }
+          // Title anchoring in retry — catches benefit description pages
+          // (allowance, vendor, frequency) missed by the first pass
+          const retryTitleTerms = searchQuery.toLowerCase()
+            .replace(/[*()[\]?/\\]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 3);
+          allNodes
+            .filter(n => n.title && retryTitleTerms.some(t => n.title.toLowerCase().includes(t)))
+            .forEach(n => {
+              if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
+            });
           allNodes.slice(0, 30).forEach(n => {
             if (!seenR.has(n.nodeId)) { seenR.add(n.nodeId); wider.push(n); }
           });
@@ -832,15 +1157,19 @@ Query type detected: ${queryType}`;
 `You are a healthcare EOC document navigator — RETRY ATTEMPT.
 The previous retrieval did NOT find the answer. You must look more broadly.
 
-EOC STRUCTURE:
-- Benefits Chart (main cost table): pages 80-250 — THIS IS THE MOST IMPORTANT RANGE
-- Service area / eligibility: pages 1-30
-- Drug coverage: pages 200-300
+HOW TO SELECT — use SECTION TITLES, not page number ranges (structure varies per plan).
+
+- Sections titled "[Benefit Name] Benefit/Benefits/Coverage"
+  → contain allowance amount, vendor/network, frequency, how-to-access.
+- Sections titled "Benefits Chart" / "What You Pay" / "Your Costs"
+  → contain copayments and coinsurance per service row.
+- Sections titled "Service Area" / "Eligibility" / "Plan Overview"
+  → contain counties, enrollment rules, contact info.
 
 For query "${searchQuery}", the answer MUST exist in this document.
 Select the ${retryNodeLimit} most likely sections.
-Prioritize pages 80-250 (Benefits Chart). Cast the widest possible net.
-Return ONLY a JSON array of section IDs.
+Prioritize sections whose TITLE matches the benefit name AND benefit chart sections.
+Cast the widest possible net. Return ONLY a JSON array of section IDs.
 
 Section directory:
 ${dir}`;
