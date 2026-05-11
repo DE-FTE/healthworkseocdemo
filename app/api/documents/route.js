@@ -33,6 +33,9 @@ import { NextResponse }              from 'next/server';
 import { listPdfs, getStorageInfo }  from '@/lib/pdfStorage';
 import { readRegistry }              from '@/lib/indexRegistry';
 
+// Always fetch live data from R2 — never serve a build-time cached snapshot.
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const [files, registry, source] = await Promise.all([
