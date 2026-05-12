@@ -90,7 +90,7 @@ queryType rules:
 - "benefit": costs, copayment, coinsurance, coverage, deductible, specific procedure/service names
 - "general": comparisons, summaries, multiple topics
 
-docTargets: list ONLY the EXACT document filenames/IDs (e.g. "H1822-001-000" not just "H1822"). Never include partial matches.
+docTargets: list ONLY the EXACT document filenames/IDs as they appear verbatim in the conversation (e.g. "H0523-074-000"). If the user refers to a plan by name only (e.g. "Aetna Medicare Value Plus") without stating a filename, return an empty array — do NOT guess or infer a filename. Never include partial matches.
 FOLLOW-UP RULE: If the current message uses "it", "same", "above", "that", "those", "the above", or does not name specific documents, INHERIT the docTargets from the most recent user message in the conversation that DID name documents.
 TOPIC RULE: If the current message is a format/display request ("show as table", "display as chart", "convert to pie"), extract the TOPIC keywords from the previous user question, not from the format instruction itself.
 
@@ -883,7 +883,17 @@ Table:
       : [];
 
     // ── PHASE 1: Local pre-filtering (zero API calls) ───────────────────────
-    const { docs: targetDocs, missingDocs } = filterRelevantDocs(allLoadedDocs, searchQuery, queryType, docTargets);
+    let { docs: targetDocs, missingDocs } = filterRelevantDocs(allLoadedDocs, searchQuery, queryType, docTargets);
+
+    // ── Fallback: GPT extracted a doc ID that isn't in the loaded library ────
+    // This happens when the user refers to a plan by name (e.g. "Aetna Medicare
+    // Value Plus") and GPT guesses a filename that doesn't match anything loaded.
+    // Instead of erroring, fall back to keyword-scored selection across all
+    // currently-loaded docs (which are already scoped by the UI filters).
+    if (targetDocs.length === 0 && missingDocs.length > 0 && allLoadedDocs.length > 0) {
+      ({ docs: targetDocs } = filterRelevantDocs(allLoadedDocs, searchQuery, queryType, []));
+      missingDocs = [];
+    }
 
     // ── Early exit: named docs not found in library ───────────────────────────
     if (missingDocs.length > 0 && targetDocs.length === 0) {
