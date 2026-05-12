@@ -653,7 +653,7 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
       // Appended after keyword results so they don't displace copay/frequency
       // pages from their priority slots, but still get included in the pool.
       const titleWords = [coreTerm, ...synList.map(s => s.split(' ')[0])]
-        .filter(w => w.length > 3);
+        .filter(w => w.length >= 3);
       allNodes
         .filter(n => n.title && titleWords.some(t => n.title.toLowerCase().includes(t)))
         .forEach(n => allResults.push(n));
@@ -692,7 +692,7 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
   const titleTerms = searchQuery.toLowerCase()
     .replace(/[*()[\]?/\\]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 3);
+    .filter(w => w.length >= 3);
   const titleMatches = allNodes.filter(n =>
     n.title && titleTerms.some(t => n.title.toLowerCase().includes(t))
   );
@@ -757,9 +757,24 @@ ${nodeDirectory}`;
   }
 
   const validIds = selectedIds.filter(id => allNodes.some(n => String(n.nodeId) === id));
-  const finalIds = validIds.length > 0
+  const gptPicks = validIds.length > 0
     ? validIds.slice(0, nodeLimit)
     : candidates.slice(0, nodeLimit).map(n => String(n.nodeId));
+
+  // For benefit queries, hard-include top title-matched section pages.
+  // WHY: GPT selection prefers benefits-chart pages (copay data) and may drop
+  // named section pages like "OTC Wallet" or "Dental Benefit" that contain the
+  // allowance amount, vendor name, and frequency limits the chart omits.
+  // This is especially common for 3-char acronyms like OTC where the section
+  // title ("OTC Wallet") uses terminology absent from the benefits chart.
+  const guaranteedTitleIds = queryType === 'benefit'
+    ? titleMatches.slice(0, 2).map(n => String(n.nodeId))
+    : [];
+  const guaranteedSet = new Set(guaranteedTitleIds);
+  const finalIds = [
+    ...guaranteedTitleIds,
+    ...gptPicks.filter(id => !guaranteedSet.has(id)),
+  ];
 
   return getNodeContents(allNodes, finalIds);
 }
@@ -1152,7 +1167,7 @@ Query type detected: ${queryType}`;
           const retryTitleTerms = searchQuery.toLowerCase()
             .replace(/[*()[\]?/\\]/g, ' ')
             .split(/\s+/)
-            .filter(w => w.length > 3);
+            .filter(w => w.length >= 3);
           allNodes
             .filter(n => n.title && retryTitleTerms.some(t => n.title.toLowerCase().includes(t)))
             .forEach(n => {
