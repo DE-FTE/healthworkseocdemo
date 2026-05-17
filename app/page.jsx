@@ -33,10 +33,33 @@ function mdHtml(md) {
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, `<code style='background:#F1F5F9;padding:1px 5px;border-radius:4px;font-size:.9em'>$1</code>`);
-  const out = []; let iL = false;
+  const out = []; let iL = false; let tBuf = [];
   const cL = () => { if (iL) { out.push('</ul>'); iL = false; } };
+  const parseRow = (l) => l.trim().split('|').slice(1,-1).map(c => c.trim());
+  const flushTable = () => {
+    if (!tBuf.length) return;
+    const sepIdx = tBuf.findIndex(l => /^\|[-:| ]+\|$/.test(l.trim()));
+    const heads = sepIdx > 0 ? tBuf.slice(0, sepIdx) : [];
+    const body  = sepIdx >= 0 ? tBuf.slice(sepIdx + 1) : tBuf;
+    let t = `<div style='overflow-x:auto;margin:8px 0'><table style='width:100%;border-collapse:collapse;font-size:.85em'>`;
+    if (heads.length) {
+      t += '<thead>';
+      heads.forEach(r => {
+        t += '<tr>' + parseRow(r).map(c => `<th style='padding:7px 12px;background:#EDE9FE;color:#4C1D95;font-weight:600;text-align:left;border:1px solid #DDD6FE;white-space:nowrap'>${inl(c)}</th>`).join('') + '</tr>';
+      });
+      t += '</thead>';
+    }
+    t += '<tbody>';
+    body.forEach((r, i) => {
+      t += `<tr style='background:${i%2===0?'#fff':'#F5F3FF'}'>` + parseRow(r).map(c => `<td style='padding:5px 12px;border:1px solid #EDE9FE;vertical-align:top;font-size:.85em'>${inl(c)}</td>`).join('') + '</tr>';
+    });
+    t += '</tbody></table></div>';
+    out.push(t); tBuf = [];
+  };
   md.split('\n').forEach((raw) => {
     const l = raw.trimEnd();
+    if (l.trim().startsWith('|')) { cL(); tBuf.push(l); return; }
+    flushTable();
     if (l.startsWith('### ')) { cL(); out.push(`<h4 style='font-size:.85em;font-weight:700;margin:10px 0 3px;color:${PUR}'>` + inl(l.slice(4)) + '</h4>'); }
     else if (l.startsWith('## ')) { cL(); out.push(`<h3 style='font-size:.92em;font-weight:700;margin:12px 0 4px;color:#0F172A'>` + inl(l.slice(3)) + '</h3>'); }
     else if (/^[-*] .+/.test(l)) {
@@ -46,7 +69,7 @@ function mdHtml(md) {
     else if (l.trim() === '') { cL(); out.push('<br/>'); }
     else { cL(); out.push("<p style='margin:3px 0;font-size:.9em'>" + inl(l) + '</p>'); }
   });
-  cL();
+  cL(); flushTable();
   return out.join('');
 }
 
