@@ -139,17 +139,23 @@ function extractBenefitTerms(message) {
     if (hits.length >= 3) return hits;
   }
 
-  // Pattern 3: "Compare X, Y, and Z benefits" — named healthcare services in a
-  // leading clause before any structured list ("Include in a table:", "* ", etc.).
-  // Handles queries like "Compare Dental, Vision, and Hearing benefits for plan X".
-  const HEALTHCARE_SERVICE = /\b(dental|vision|hearing|otc|over.the.counter|flex\s*card|pharmacy|chiropractic|acupuncture|podiatry|physical\s*therapy|mental\s*health|transportation|fitness|hospice|skilled\s*nursing|urgent\s*care|emergency|inpatient|outpatient)\b/i;
+  // Pattern 3: 2+ healthcare service names anywhere in the query's leading clause,
+  // separated by commas, "and", spaces, or any order relative to attribute words.
+  // Uses a global scan so it catches "Dental Vision and Hearing" (no commas)
+  // just as reliably as "Dental, Vision, Hearing Exclusions" (with commas).
+  // This is intentionally attribute-agnostic — exclusion/copay/allowance/etc. in
+  // any position are ignored; only the service names determine multi-benefit mode.
+  const HEALTHCARE_SERVICES_RE = /\b(dental|vision|hearing|otc|over.the.counter|flex\s*card|pharmacy|chiropractic|acupuncture|podiatry|physical\s*therapy|mental\s*health|transportation|fitness|hospice|skilled\s*nursing|urgent\s*care|emergency|inpatient|outpatient)\b/gi;
   const leadingClause = message.split(/\binclude\s+in\s+a\b|\bprovide:|\balso\s+provide\b|\* /i)[0].trim();
   if (leadingClause.length > 0) {
-    const leadParts = leadingClause.split(/,\s*(?:and\s+)?/);
-    const serviceTerms = leadParts
-      .map(p => { const m = p.match(HEALTHCARE_SERVICE); return m ? m[0].trim() : null; })
-      .filter(Boolean);
-    if (serviceTerms.length >= 2) return serviceTerms;
+    const serviceNamesFound = [];
+    const svcRe = new RegExp(HEALTHCARE_SERVICES_RE.source, 'gi');
+    let svcMatch;
+    while ((svcMatch = svcRe.exec(leadingClause)) !== null) {
+      const svc = svcMatch[1].toLowerCase().replace(/\s+/g, ' ');
+      if (!serviceNamesFound.includes(svc)) serviceNamesFound.push(svc);
+    }
+    if (serviceNamesFound.length >= 2) return serviceNamesFound;
   }
 
   return [];
