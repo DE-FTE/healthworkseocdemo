@@ -815,18 +815,68 @@ export default function Home() {
     // time, so it would always give an incomplete list.
     // IMPORTANT: do NOT intercept if the message contains medical/benefit terms —
     // those are real questions that need RAG (e.g. "copayment for the above plans").
+
+    // Expanded benefit vocabulary — if any of these appear, it's a real benefit query, not meta.
+    const BENEFIT_TERMS = /copay|copayment|coinsurance|deductible|coverage|covered|benefit|cost|premium|prior auth|authorization|ambulance|dental|vision|hearing|drug|prescription|formulary|specialist|emergency|hospital|physician|service|procedure|out.of.pocket|in.network|out.of.network|fitness|vendor|gym|exclusion|limit|allowance|otc|flex\s*card|flex\s*essentials|over.the.counter|supplement|transport|meal|chiropractic|acupuncture|podiatry|physical therapy|mental health|behavioral|reimburs|maximum|minimum|tier|formulary|chronic|quarter|monthly|annual/i;
+
+    // ── Scope/filter metadata intercept ──────────────────────────────────
+    // Catches queries asking about payor/state/plan names currently in scope.
+    // These are answered directly from the loaded metadata — zero document
+    // retrieval needed. Examples: "mention the payors in scope", "show me
+    // the states selected", "in a table, list plan names that are filtered".
+    const SCOPE_PATTERNS = /\b(payor|payer|payors|payers|state|states|plan\s*name|plan\s*names|in\s*scope|in\s+scope|selected|filtered)\b/i;
+    const SCOPE_REQUEST  = /\b(mention|list|show|display|tell|give|provide|what|which|tabular|table|format|summarize|summary)\b/i;
+    if (SCOPE_PATTERNS.test(content) && SCOPE_REQUEST.test(content) && !BENEFIT_TERMS.test(content) && metadata.rows.length > 0) {
+      const scopeFilenames = hasActiveFilters
+        ? filteredPdfNames
+        : new Set(readyDocs.map(d => d.filename));
+      const seen = new Set();
+      const scopeMeta = metadata.rows.filter(r => {
+        if (!scopeFilenames || !scopeFilenames.has(r.PDF_NAME)) return false;
+        if (seen.has(r.PDF_NAME)) return false;
+        seen.add(r.PDF_NAME);
+        return true;
+      });
+      if (scopeMeta.length > 0) {
+        const wantTable = /tabular|table|format/i.test(content);
+        const scopeNote = hasActiveFilters
+          ? ` (${scopeMeta.length} of ${readyDocs.length} total)`
+          : ` (${scopeMeta.length} total)`;
+        let reply;
+        if (wantTable) {
+          const header = '| # | Payor | State | Plan Name | Document |\n|---|-------|-------|-----------|----------|\n';
+          const rows = scopeMeta.map((r, i) =>
+            `| ${i + 1} | ${r.PAYOR} | ${r.STATE} | ${r.PLAN_NAME} | ${r.PDF_NAME} |`
+          ).join('\n');
+          reply = `**${scopeMeta.length} plans in scope**${scopeNote}:\n\n${header}${rows}`;
+        } else {
+          const lines = scopeMeta.map((r, i) =>
+            `${i + 1}. **${r.PLAN_NAME}** — ${r.PAYOR} · ${r.STATE} · \`${r.PDF_NAME}\``
+          ).join('\n');
+          reply = `**${scopeMeta.length} plans in scope**${scopeNote}:\n\n${lines}`;
+        }
+        setMsgs(p => [...p, userMsg, { id:uid(), role:'assistant', content:reply, loading:false, ts:new Date() }]);
+        return;
+      }
+    }
+
+    // ── Document library meta-query intercept ────────────────────────────
     // Patterns that indicate the user is asking ABOUT the loaded library — not about benefits.
     // IMPORTANT: "name" is only a meta-signal when it's used as a verb at the start of the
     // query ("name the plans", "names of loaded docs"). Mid-sentence uses like
     // "Fitness Vendor Name ... plans" must NOT trigger this intercept.
     const META_PATTERNS = /list.*(plan|doc|file|pdf|loaded|available|analys)|what.*(plan|doc|loaded|available)|which.*(plan|doc|loaded)|show.*(plan|doc|loaded|available)|^names?\s+(of\s+|the\s+|all\s+)?(loaded\s+|available\s+)?(plan|doc|pdf|file)|how many.*(plan|doc)|(plan|doc).*(available|loaded|analys)|tell.*(plan|doc)|all.*(plan|doc).*(loaded|available|analys)/i;
-    // Expanded benefit vocabulary — if any of these appear, it's a real benefit query, not meta.
-    const BENEFIT_TERMS = /copay|copayment|coinsurance|deductible|coverage|covered|benefit|cost|premium|prior auth|authorization|ambulance|dental|vision|hearing|drug|prescription|formulary|specialist|emergency|hospital|physician|service|procedure|out.of.pocket|in.network|out.of.network|fitness|vendor|gym|exclusion|limit|allowance|otc|flex\s*card|flex\s*essentials|over.the.counter|supplement|transport|meal|chiropractic|acupuncture|podiatry|physical therapy|mental health|behavioral|reimburs|maximum|minimum|tier|formulary|chronic|quarter|monthly|annual/i;
     if (META_PATTERNS.test(content) && !BENEFIT_TERMS.test(content)) {
       const scopeDocs = filteredReadyDocs;
-      const docList = scopeDocs.map((d, i) =>
-        `${i + 1}. **${d.filename}** — ${d.nodeCount} sections indexed`
-      ).join('\n');
+      // Enrich each document with payor/state/plan name from metadata if available
+      const metaByFile = Object.fromEntries(metadata.rows.map(r => [r.PDF_NAME, r]));
+      const docList = scopeDocs.map((d, i) => {
+        const m = metaByFile[d.filename];
+        const detail = m
+          ? `${m.PLAN_NAME} — ${m.PAYOR} · ${m.STATE}`
+          : `${d.nodeCount} sections indexed`;
+        return `${i + 1}. **${d.filename}** — ${detail}`;
+      }).join('\n');
       const scopeNote = hasActiveFilters ? ` (filtered scope — ${scopeDocs.length} of ${readyDocs.length} total)` : '';
       const reply = `All **${scopeDocs.length} documents**${scopeNote} currently loaded and ready for analysis:\n\n${docList}\n\nYou can ask questions about any of these individually, or compare across multiple plans by naming them in your query.`;
       setMsgs(p => [...p, userMsg, { id:uid(), role:'assistant', content:reply, loading:false, ts:new Date() }]);
