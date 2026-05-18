@@ -310,6 +310,174 @@ function parseContent(raw) {
 }
 
 
+// ─── Quick Insights catalog ───────────────────────────────────────────────────
+// Each entry defines a one-click deep-dive analysis that runs against whatever
+// plans are currently in scope.  Add new entries here to surface more analyses.
+const QUICK_INSIGHTS = [
+  {
+    id:          'otc_flex',
+    emoji:       '🛒',
+    iconBg:      '#FFF7ED',
+    iconBorder:  '#FED7AA',
+    title:       'OTC & Flex Card',
+    description: 'Allowances, wallet types, carryover rules, purchase channels, and vendor programs — structured side-by-side.',
+    tags:        ['Coverage', 'Allowance', 'Wallet type', 'Carryover', 'Channels', 'Vendor'],
+    prompt:
+`Compare OTC and Flex Card benefits across these plans.
+
+Show in a structured grid:
+
+* Coverage and eligible items
+* Allowance amount and frequency
+* Wallet/card type and funding method
+* Carryover rules and expiry
+* Purchase channels (online, retail, catalog)
+* Vendor/program name
+
+Also include:
+
+* Key differences summary
+* Exact EOC quotes for each data point
+* Call out missing information clearly`,
+  },
+];
+
+// ─── Quick Insight Card ───────────────────────────────────────────────────────
+function QuickInsightCard({ insight, scopeCount, anyActive, startupDone, onRun }) {
+  const [warn,    setWarn]    = useState(null); // null | 'loading' | 'no_docs' | 'no_scope' | 'too_many'
+  const [hovered, setHovered] = useState(false);
+
+  const scopeOk = anyActive && startupDone && scopeCount >= 1 && scopeCount <= 4;
+
+  const handleClick = () => {
+    if (!startupDone)  { setWarn('loading');  return; }
+    if (!anyActive)    { setWarn('no_docs');   return; }
+    if (scopeCount === 0) { setWarn('no_scope'); return; }
+    if (scopeCount > 4)   { setWarn('too_many'); return; }
+    setWarn(null);
+    onRun(insight.prompt);
+  };
+
+  return (
+    <div style={{ width: 310, flexShrink: 0 }}>
+      {/* ── Card ── */}
+      <div
+        onClick={handleClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          background: '#fff',
+          border: `1.5px solid ${hovered ? PUR : PUR_B}`,
+          borderRadius: 14,
+          padding: '14px 16px',
+          cursor: 'pointer',
+          transition: 'box-shadow .18s, border-color .18s, transform .18s',
+          boxShadow: hovered ? '0 6px 20px rgba(124,58,237,0.13)' : '0 1px 4px rgba(0,0,0,0.05)',
+          transform: hovered ? 'translateY(-2px)' : 'none',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{
+            width: 46, height: 46, borderRadius: 11, flexShrink: 0,
+            background: insight.iconBg, border: `1px solid ${insight.iconBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+          }}>
+            {insight.emoji}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E1B4B' }}>{insight.title}</span>
+              {startupDone && scopeCount > 0 && (
+                <span style={{
+                  fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
+                  background: scopeOk ? '#DCFCE7' : '#FFF7ED',
+                  color:      scopeOk ? '#166534' : '#92400E',
+                  border:     `1px solid ${scopeOk ? '#86EFAC' : '#FCD34D'}`,
+                  padding: '2px 8px', borderRadius: 10,
+                }}>
+                  {scopeCount} plan{scopeCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3, lineHeight: 1.45 }}>
+              {insight.description}
+            </div>
+          </div>
+        </div>
+
+        {/* Tag strip */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 11 }}>
+          {insight.tags.map(tag => (
+            <span key={tag} style={{
+              fontSize: 10, background: PUR_M, color: PUR,
+              padding: '2px 8px', borderRadius: 8, border: `1px solid ${PUR_B}`,
+            }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end',
+          marginTop: 12, paddingTop: 10, borderTop: `1px solid ${PUR_B}`,
+        }}>
+          <span style={{
+            fontSize: 11.5, fontWeight: 600,
+            color: scopeOk ? PUR : '#9CA3AF',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            {!startupDone
+              ? 'Loading…'
+              : scopeOk
+                ? '▶ Run Analysis →'
+                : scopeCount === 0
+                  ? 'Select 1–4 plans to run'
+                  : scopeCount > 4
+                    ? `Narrow to 1–4 plans (${scopeCount} in scope)`
+                    : 'Select plans using filters above'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Scope guidance callout (shown below card on click when scope is wrong) ── */}
+      {warn && (
+        <div style={{
+          marginTop: 6, background: '#FFFBEB', border: '1px solid #FCD34D',
+          borderRadius: 10, padding: '10px 12px', fontSize: 11.5,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <span style={{ color: '#92400E', lineHeight: 1.5 }}>
+              {warn === 'loading'  && '⏳ Documents are still indexing — please wait a moment, then try again.'}
+              {warn === 'no_docs'  && '⚠️ No documents are loaded yet. Please wait for indexing to complete.'}
+              {warn === 'no_scope' && '⚠️ No plans in scope. Use the filters above to select 1–4 plans, then click again.'}
+              {warn === 'too_many' && `⚠️ ${scopeCount} plans are in scope. This comparison is most focused with 1–4 plans — narrow using the filters above, or run with all ${scopeCount}.`}
+            </span>
+            <button
+              onClick={e => { e.stopPropagation(); setWarn(null); }}
+              style={{ background: 'none', border: 'none', color: '#92400E', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0 }}
+            >✕</button>
+          </div>
+          {warn === 'too_many' && (
+            <button
+              onClick={e => { e.stopPropagation(); setWarn(null); onRun(insight.prompt); }}
+              style={{
+                marginTop: 8, fontSize: 11.5, fontWeight: 600,
+                color: '#fff', background: PUR, border: 'none',
+                borderRadius: 7, padding: '5px 14px',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Run with all {scopeCount} plans →
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Sample questions ─────────────────────────────────────────────────────────
 const DOC_PILLS = [
   'What is the out-of-pocket maximum for in-network services?',
@@ -1086,17 +1254,52 @@ export default function Home() {
         {/* Messages / Empty state */}
         <div style={{ flex:1, overflowY:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:10, background:'#F8FAFC' }}>
           {msgs.length === 0 && (
-            <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-              <div style={{ fontSize:10.5, fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:9 }}>Try asking</div>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                {DOC_PILLS.map((p,i) => (
-                  <button key={i} onClick={() => ask(p)} disabled={!anyActive} style={{ background:anyActive?PUR_M:'#F1F5F9', border:`1px solid ${anyActive?PUR_B:'#E2E8F0'}`, borderRadius:20, padding:'5px 13px', fontSize:11.5, color:anyActive?PUR:'#94A3B8', cursor:anyActive?'pointer':'not-allowed', fontFamily:'inherit' }}>
-                    {p}
-                  </button>
-                ))}
+            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:22 }}>
+
+              {/* ── Quick Insights ───────────────────────────────────────────── */}
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+                  <span style={{ fontSize:10.5, fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'.08em' }}>⚡ Quick Insights</span>
+                </div>
+                <p style={{ fontSize:11.5, color:'#9CA3AF', margin:'0 0 14px', lineHeight:1.5 }}>
+                  One-click deep-dives across your selected plans. Select 1–4 plans using the filters above, then click an insight to run it instantly.
+                </p>
+                <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+                  {QUICK_INSIGHTS.map(insight => (
+                    <QuickInsightCard
+                      key={insight.id}
+                      insight={insight}
+                      scopeCount={filteredReadyDocs.length}
+                      anyActive={anyActive}
+                      startupDone={startupDone}
+                      onRun={ask}
+                    />
+                  ))}
+                </div>
               </div>
+
+              {/* ── Divider ─────────────────────────────────────────────────── */}
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ flex:1, height:1, background:'#E2E8F0' }}/>
+                <span style={{ fontSize:10, color:'#CBD5E1', fontWeight:600, letterSpacing:'.06em' }}>OR ASK DIRECTLY</span>
+                <div style={{ flex:1, height:1, background:'#E2E8F0' }}/>
+              </div>
+
+              {/* ── Try asking pills (existing) ──────────────────────────────── */}
+              <div>
+                <div style={{ fontSize:10.5, fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:9 }}>Try asking</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {DOC_PILLS.map((p,i) => (
+                    <button key={i} onClick={() => ask(p)} disabled={!anyActive} style={{ background:anyActive?PUR_M:'#F1F5F9', border:`1px solid ${anyActive?PUR_B:'#E2E8F0'}`, borderRadius:20, padding:'5px 13px', fontSize:11.5, color:anyActive?PUR:'#94A3B8', cursor:anyActive?'pointer':'not-allowed', fontFamily:'inherit' }}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── No PDFs warning ─────────────────────────────────────────── */}
               {!anyReady && startupDone && documents.length === 0 && (
-                <div style={{ marginTop:24, padding:'12px 16px', background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:10, fontSize:12, color:'#92400E' }}>
+                <div style={{ padding:'12px 16px', background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:10, fontSize:12, color:'#92400E' }}>
                   ⚠️ No PDFs found in storage ({storageLabel || 'local /pdfs folder'}). Check your storage configuration and reload.
                 </div>
               )}
