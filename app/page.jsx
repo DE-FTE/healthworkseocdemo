@@ -340,6 +340,54 @@ Also include:
 * Exact EOC quotes for each data point
 * Call out missing information clearly`,
   },
+  {
+    id:          'dental_vision_hearing',
+    emoji:       '🦷',
+    iconBg:      '#EFF6FF',
+    iconBorder:  '#BFDBFE',
+    title:       'Dental, Vision & Hearing',
+    description: 'Copays, frequency limits, included items, and exclusions compared across plans in a single grid.',
+    tags:        ['Covered services', 'Copay / limits', 'Frequency', 'Included items', 'Exclusions'],
+    prompt:
+`Compare Dental, Vision, and Hearing benefits for these plans.
+
+Include in a grid:
+
+* Covered services and eligibility
+* Copay/coinsurance and maximum coverage limits
+* Frequency limits (e.g., exams, devices)
+* Included items (e.g., lenses, hearing aids)
+
+Also provide:
+
+* Notable differences across plans
+* Any restrictive conditions or exclusions
+* Exact EOC language for reference`,
+  },
+  {
+    id:          'meals_grocery',
+    emoji:       '🥗',
+    iconBg:      '#F0FDF4',
+    iconBorder:  '#BBF7D0',
+    title:       'Meals & Grocery',
+    description: 'Post-discharge meals, grocery allowances, delivery methods, eligibility triggers, and vendor details.',
+    tags:        ['Trigger conditions', 'Allowance', 'Frequency', 'Delivery', 'Eligibility', 'Vendor'],
+    prompt:
+`Compare Meals and Grocery benefits across these plans.
+
+Focus on:
+
+* When benefits are triggered (e.g., post-discharge, chronic conditions)
+* Number of meals or grocery allowance
+* Duration and frequency limits
+* Delivery method and vendor
+
+Also include:
+
+* Eligibility conditions and approval requirements
+* Differences in flexibility between plans (label interpretation)
+* Exact EOC references`,
+  },
 ];
 
 // ─── Quick Insight Card ───────────────────────────────────────────────────────
@@ -477,18 +525,6 @@ function QuickInsightCard({ insight, scopeCount, anyActive, startupDone, onRun }
     </div>
   );
 }
-
-// ─── Sample questions ─────────────────────────────────────────────────────────
-const DOC_PILLS = [
-  'What is the out-of-pocket maximum for in-network services?',
-  'Does this plan cover dental implants?',
-  'What are the exclusions for orthodontic services?',
-  'What prior authorization is required for specialist visits?',
-  'How is emergency care covered outside the service area?',
-  'What are the annual dental maximum benefit limits?',
-  'Are there any waiting periods for major dental services?',
-  'What cost-sharing applies to oral surgery?',
-];
 
 // ─── Conversation persistence ─────────────────────────────────────────────────
 const CONV_KEY     = 'hwai_conversations';
@@ -1274,25 +1310,6 @@ export default function Home() {
                       startupDone={startupDone}
                       onRun={ask}
                     />
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Divider ─────────────────────────────────────────────────── */}
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ flex:1, height:1, background:'#E2E8F0' }}/>
-                <span style={{ fontSize:10, color:'#CBD5E1', fontWeight:600, letterSpacing:'.06em' }}>OR ASK DIRECTLY</span>
-                <div style={{ flex:1, height:1, background:'#E2E8F0' }}/>
-              </div>
-
-              {/* ── Try asking pills (existing) ──────────────────────────────── */}
-              <div>
-                <div style={{ fontSize:10.5, fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:9 }}>Try asking</div>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                  {DOC_PILLS.map((p,i) => (
-                    <button key={i} onClick={() => ask(p)} disabled={!anyActive} style={{ background:anyActive?PUR_M:'#F1F5F9', border:`1px solid ${anyActive?PUR_B:'#E2E8F0'}`, borderRadius:20, padding:'5px 13px', fontSize:11.5, color:anyActive?PUR:'#94A3B8', cursor:anyActive?'pointer':'not-allowed', fontFamily:'inherit' }}>
-                      {p}
-                    </button>
                   ))}
                 </div>
               </div>
