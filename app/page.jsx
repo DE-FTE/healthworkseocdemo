@@ -334,13 +334,14 @@ function DownloadRow({ doc, index, busy, onDownload, fmtSize }) {
 }
 
 function DownloadCenter({ metadata, onClose }) {
-  const [allDocs,   setAllDocs]   = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState('');
-  const [fPayor,    setFPayor]    = useState('');
-  const [fState,    setFState]    = useState('');
-  const [fType,     setFType]     = useState('');
-  const [dlBusy,    setDlBusy]    = useState(new Set());
+  const [allDocs,      setAllDocs]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState('');
+  const [fPayor,       setFPayor]       = useState('');
+  const [fState,       setFState]       = useState('');
+  const [fType,        setFType]        = useState('');
+  const [dlBusy,       setDlBusy]       = useState(new Set());
+  const [bulkProgress, setBulkProgress] = useState(null); // { payor, done, total } | null
 
   useEffect(() => {
     fetch('/api/documents')
@@ -356,6 +357,18 @@ function DownloadCenter({ metadata, onClose }) {
   const payors    = [...new Set(allDocs.map(d => d.meta?.PAYOR).filter(Boolean))].sort();
   const states    = [...new Set(allDocs.map(d => d.meta?.STATE).filter(Boolean))].sort();
   const planTypes = [...new Set(allDocs.map(d => d.meta?.PLAN_TYPE).filter(Boolean))].sort();
+
+  const payorGroups = useMemo(() => {
+    const g = {};
+    allDocs.forEach(d => { const p = d.meta?.PAYOR; if (!p) return; if (!g[p]) g[p] = []; g[p].push(d); });
+    return Object.entries(g).map(([payor, docs]) => ({ payor, docs })).sort((a, b) => a.payor.localeCompare(b.payor));
+  }, [allDocs]);
+
+  const payorColor = (name) => {
+    const C = ['#7C3AED','#2563EB','#DC2626','#D97706','#059669','#0891B2','#9333EA','#C2410C','#BE185D'];
+    let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+    return C[Math.abs(h) % C.length];
+  };
 
   const visible = allDocs.filter(d => {
     if (fPayor && d.meta?.PAYOR     !== fPayor) return false;
@@ -379,74 +392,143 @@ function DownloadCenter({ metadata, onClose }) {
   const handleDownload = (filename) => {
     setDlBusy(p => new Set([...p, filename]));
     const a = document.createElement('a');
-    a.href     = `/api/download-pdf?filename=${encodeURIComponent(filename)}`;
+    a.href = `/api/download-pdf?filename=${encodeURIComponent(filename)}`;
     a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => setDlBusy(p => { const s = new Set(p); s.delete(filename); return s; }), 2500);
+  };
+
+  const handleBulkDownload = async (payor, docs) => {
+    setBulkProgress({ payor, done: 0, total: docs.length });
+    try {
+      const { default: JSZip } = await import('jszip');
+      const zip    = new JSZip();
+      const folder = zip.folder(payor.replace(/[^a-zA-Z0-9 ]/g, '_'));
+      for (let i = 0; i < docs.length; i++) {
+        try {
+          const resp = await fetch(`/api/download-pdf?filename=${encodeURIComponent(docs[i].name)}`);
+          if (resp.ok) { const buf = await resp.arrayBuffer(); folder.file(docs[i].name, buf); }
+        } catch {}
+        setBulkProgress(p => p ? { ...p, done: i + 1 } : null);
+      }
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `${payor.replace(/[^a-zA-Z0-9]/g, '_')}_EOCs.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch(e) { console.error('[bulk-download]', e); }
+    finally { setBulkProgress(null); }
   };
 
   const hasFilter = search || fPayor || fState || fType;
   const shown     = visible.slice(0, 250);
-
-  const selStyle = (active) => ({
+  const selStyle  = (active) => ({
     height: 34, padding: '0 10px',
     border: `1px solid ${active ? PUR : PUR_B}`, borderRadius: 8,
     fontSize: 12, fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
-    background: active ? PUR_M : '#fff', color: active ? PUR : '#6B7280',
-    minWidth: 108,
+    background: active ? PUR_M : '#fff', color: active ? PUR : '#6B7280', minWidth: 108,
   });
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-         onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 980, height: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 72px rgba(0,0,0,0.28)', overflow: 'hidden' }}>
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 980, height: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 72px rgba(0,0,0,0.28)', overflow: 'hidden', position: 'relative' }}>
 
-        {/* ── Header ── */}
-        <div style={{ padding: '18px 24px', background: 'linear-gradient(135deg,#3B0764 0%,#6D28D9 55%,#7C3AED 100%)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📥</div>
+        {/* ── Header (redesigned) ── */}
+        <div style={{ background: 'linear-gradient(135deg,#1E0A3C 0%,#3B0764 28%,#5B21B6 65%,#7C3AED 100%)', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+          {/* Dot-grid texture overlay */}
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)', backgroundSize: '22px 22px', pointerEvents: 'none' }}/>
+          {/* Glow blobs */}
+          <div style={{ position: 'absolute', top: -40, right: 120, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.22) 0%, transparent 70%)', pointerEvents: 'none' }}/>
+          <div style={{ position: 'absolute', bottom: -30, left: 80, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)', pointerEvents: 'none' }}/>
+
+          {/* Title row */}
+          <div style={{ padding: '20px 24px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 54, height: 54, borderRadius: 15, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: '0 0 28px rgba(167,139,250,0.4), inset 0 1px 0 rgba(255,255,255,0.18)' }}>📥</div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>Download Center</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
-                  {loading ? 'Loading documents…' : `${allDocs.length} EOC documents available · Click any row to download`}
+                <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', letterSpacing: '-.025em', lineHeight: 1.2 }}>Download Center</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.52)', marginTop: 4 }}>
+                  {loading ? 'Loading documents…' : `${allDocs.length} EOC documents · ${payorGroups.length} payor${payorGroups.length !== 1 ? 's' : ''} · ${states.length} state${states.length !== 1 ? 's' : ''}`}
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {!loading && (
-                <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: 20 }}>
-                  {allDocs.length} PDFs
-                </span>
+                <>
+                  <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.11)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.18)', padding: '4px 11px', borderRadius: 20, whiteSpace: 'nowrap' }}>{allDocs.length} PDFs</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.11)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.18)', padding: '4px 11px', borderRadius: 20, whiteSpace: 'nowrap' }}>{payorGroups.length} Payors</span>
+                </>
               )}
-              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✕</button>
+              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>✕</button>
             </div>
           </div>
+
+          {/* Bulk Download by Payor strip */}
+          {!loading && payorGroups.length > 0 && (
+            <div style={{ padding: '0 24px 18px', position: 'relative' }}>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.42)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10 }}>
+                ⬇&nbsp;&nbsp;Bulk Download by Payor — click a payor to download all its EOCs as a ZIP
+              </div>
+              <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+                {payorGroups.map(({ payor, docs }) => {
+                  const col     = payorColor(payor);
+                  const label   = payor.length > 20 ? payor.slice(0, 19) + '…' : payor;
+                  const isBusy  = bulkProgress?.payor === payor;
+                  const anyBusy = !!bulkProgress;
+                  return (
+                    <button
+                      key={payor}
+                      onClick={() => !anyBusy && handleBulkDownload(payor, docs)}
+                      title={`Download all ${docs.length} EOCs for ${payor} as a ZIP file`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
+                        background: isBusy ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)',
+                        border: `1px solid rgba(255,255,255,${isBusy ? '.4' : '.16'})`,
+                        color: '#fff', borderRadius: 9, padding: '7px 12px',
+                        cursor: anyBusy ? (isBusy ? 'wait' : 'not-allowed') : 'pointer',
+                        fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+                        opacity: anyBusy && !isBusy ? 0.45 : 1,
+                        transition: 'all .15s',
+                      }}
+                      onMouseEnter={e => { if (!anyBusy) { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.35)'; } }}
+                      onMouseLeave={e => { e.currentTarget.style.background = isBusy ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = `rgba(255,255,255,${isBusy?'.4':'.16'})`; }}
+                    >
+                      <span style={{ width: 24, height: 24, borderRadius: 6, background: col, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                        {payor.charAt(0)}
+                      </span>
+                      <span style={{ whiteSpace: 'nowrap' }}>{label}</span>
+                      <span style={{ background: 'rgba(255,255,255,0.16)', borderRadius: 10, padding: '1px 7px', fontSize: 10, whiteSpace: 'nowrap', fontWeight: 700 }}>{docs.length}</span>
+                      {isBusy
+                        ? <span style={{ marginLeft: 2 }}><Dots/></span>
+                        : <svg width="11" height="11" viewBox="0 0 16 16" fill="rgba(255,255,255,0.65)" style={{ flexShrink: 0 }}><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                      }
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Filter bar ── */}
         <div style={{ padding: '12px 20px', borderBottom: `1px solid ${PUR_B}`, background: PUR_M, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#A78BFA', pointerEvents: 'none' }}>🔍</span>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search plan name, payor, or filename…"
-              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 30, paddingRight: 12, height: 34, border: `1px solid ${PUR_B}`, borderRadius: 8, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: '#fff', color: '#1E293B' }}
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search plan name, payor, or filename…"
+              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 30, paddingRight: 12, height: 34, border: `1px solid ${PUR_B}`, borderRadius: 8, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: '#fff', color: '#1E293B' }}/>
           </div>
-          <select value={fPayor}    onChange={e => setFPayor(e.target.value)}    style={selStyle(!!fPayor)}>
-            <option value="">All Payors</option>
-            {payors.map(p => <option key={p} value={p}>{p}</option>)}
+          <select value={fPayor} onChange={e => setFPayor(e.target.value)} style={selStyle(!!fPayor)}>
+            <option value="">All Payors</option>{payors.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
-          <select value={fState}    onChange={e => setFState(e.target.value)}    style={selStyle(!!fState)}>
-            <option value="">All States</option>
-            {states.map(s => <option key={s} value={s}>{s}</option>)}
+          <select value={fState} onChange={e => setFState(e.target.value)} style={selStyle(!!fState)}>
+            <option value="">All States</option>{states.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select value={fType}     onChange={e => setFType(e.target.value)}     style={selStyle(!!fType)}>
-            <option value="">All Plan Types</option>
-            {planTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          <select value={fType}  onChange={e => setFType(e.target.value)}  style={selStyle(!!fType)}>
+            <option value="">All Plan Types</option>{planTypes.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           {hasFilter && (
             <button onClick={() => { setSearch(''); setFPayor(''); setFState(''); setFType(''); }}
@@ -461,7 +543,7 @@ function DownloadCenter({ metadata, onClose }) {
           <span style={{ fontSize: 11, color: '#6B7280' }}>
             {loading ? 'Loading…' : `Showing ${shown.length} of ${visible.length} documents${hasFilter ? ' (filtered)' : ''}`}
           </span>
-          <span style={{ fontSize: 10, color: '#9CA3AF' }}>Scroll to see more · Files download directly to your browser</span>
+          <span style={{ fontSize: 10, color: '#9CA3AF' }}>Individual row downloads · Bulk ZIP via payor buttons above</span>
         </div>
 
         {/* ── Table ── */}
@@ -499,6 +581,29 @@ function DownloadCenter({ metadata, onClose }) {
           </span>
           <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, color: PUR, background: '#fff', border: `1px solid ${PUR_B}`, borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
         </div>
+
+        {/* ── Bulk ZIP progress overlay ── */}
+        {bulkProgress && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.72)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30, borderRadius: 20 }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: '36px 44px', textAlign: 'center', maxWidth: 360, boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#1E1B4B', marginBottom: 6 }}>Building ZIP</div>
+              <div style={{ fontSize: 12, color: PUR, fontWeight: 600, marginBottom: 3 }}>{bulkProgress.payor}</div>
+              <div style={{ fontSize: 11.5, color: '#9CA3AF', marginBottom: 20 }}>
+                Fetching file {bulkProgress.done} of {bulkProgress.total}…
+              </div>
+              <div style={{ height: 8, background: '#EDE9FE', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{ height: '100%', background: `linear-gradient(90deg,${PUR},#A78BFA)`, borderRadius: 4, width: `${Math.round((bulkProgress.done / bulkProgress.total) * 100)}%`, transition: 'width .35s ease' }}/>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: PUR }}>
+                {Math.round((bulkProgress.done / bulkProgress.total) * 100)}%
+              </div>
+              <div style={{ marginTop: 16, fontSize: 10.5, color: '#9CA3AF', lineHeight: 1.5 }}>
+                Your ZIP will download automatically when complete.<br/>Please keep this window open.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
