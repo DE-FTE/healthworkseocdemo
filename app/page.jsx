@@ -283,6 +283,227 @@ function DataTable({ spec }) {
   );
 }
 
+// ─── Download Center ─────────────────────────────────────────────────────────
+
+const DL_ICON = (
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+  </svg>
+);
+
+function DownloadRow({ doc, index, busy, onDownload, fmtSize }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <tr
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ background: hov ? PUR_M : index % 2 === 0 ? '#fff' : '#FAFAFA', borderBottom: `1px solid ${PUR_B}`, transition: 'background .12s' }}
+    >
+      <td style={{ padding: '9px 16px', color: '#1E1B4B', fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={doc.meta?.PLAN_NAME}>
+        {doc.meta?.PLAN_NAME || <span style={{ color: '#9CA3AF' }}>—</span>}
+      </td>
+      <td style={{ padding: '9px 12px', color: '#374151', whiteSpace: 'nowrap' }}>{doc.meta?.PAYOR || '—'}</td>
+      <td style={{ padding: '9px 12px', color: '#374151' }}>{doc.meta?.STATE || '—'}</td>
+      <td style={{ padding: '9px 12px' }}>
+        {doc.meta?.PLAN_TYPE
+          ? <span style={{ background: PUR_M, color: PUR, padding: '2px 8px', borderRadius: 8, fontSize: 10, fontWeight: 600, border: `1px solid ${PUR_B}`, whiteSpace: 'nowrap' }}>{doc.meta.PLAN_TYPE}</span>
+          : <span style={{ color: '#9CA3AF' }}>—</span>}
+      </td>
+      <td style={{ padding: '9px 12px', color: '#9CA3AF', fontSize: 10.5, fontFamily: 'monospace', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={doc.name}>{doc.name}</td>
+      <td style={{ padding: '9px 12px', color: '#6B7280', fontSize: 11, whiteSpace: 'nowrap' }}>{fmtSize(doc.size)}</td>
+      <td style={{ padding: '9px 16px', textAlign: 'center' }}>
+        <button
+          onClick={() => onDownload(doc.name)}
+          disabled={busy}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: busy ? '#E2E8F0' : hov ? PUR : '#fff',
+            color: busy ? '#9CA3AF' : hov ? '#fff' : PUR,
+            border: `1px solid ${busy ? '#E2E8F0' : PUR_B}`,
+            borderRadius: 7, padding: '5px 13px',
+            fontSize: 11, fontWeight: 600, cursor: busy ? 'wait' : 'pointer',
+            fontFamily: 'inherit', transition: 'all .14s',
+          }}
+        >
+          {busy ? <><Dots/>&nbsp;Saving</> : <>{DL_ICON} PDF</>}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function DownloadCenter({ metadata, onClose }) {
+  const [allDocs,   setAllDocs]   = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [search,    setSearch]    = useState('');
+  const [fPayor,    setFPayor]    = useState('');
+  const [fState,    setFState]    = useState('');
+  const [fType,     setFType]     = useState('');
+  const [dlBusy,    setDlBusy]    = useState(new Set());
+
+  useEffect(() => {
+    fetch('/api/documents')
+      .then(r => r.json())
+      .then(data => {
+        const metaMap = Object.fromEntries(metadata.rows.map(r => [r.PDF_NAME, r]));
+        setAllDocs((data.files || []).map(f => ({ ...f, meta: metaMap[f.name] || null })));
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const payors    = [...new Set(allDocs.map(d => d.meta?.PAYOR).filter(Boolean))].sort();
+  const states    = [...new Set(allDocs.map(d => d.meta?.STATE).filter(Boolean))].sort();
+  const planTypes = [...new Set(allDocs.map(d => d.meta?.PLAN_TYPE).filter(Boolean))].sort();
+
+  const visible = allDocs.filter(d => {
+    if (fPayor && d.meta?.PAYOR     !== fPayor) return false;
+    if (fState && d.meta?.STATE     !== fState) return false;
+    if (fType  && d.meta?.PLAN_TYPE !== fType)  return false;
+    if (search) {
+      const s = search.toLowerCase();
+      return d.name.toLowerCase().includes(s)
+          || d.meta?.PLAN_NAME?.toLowerCase().includes(s)
+          || d.meta?.PAYOR?.toLowerCase().includes(s);
+    }
+    return true;
+  });
+
+  const fmtSize = (b) => {
+    if (!b) return '—';
+    if (b < 1048576) return `${(b / 1024).toFixed(0)} KB`;
+    return `${(b / 1048576).toFixed(1)} MB`;
+  };
+
+  const handleDownload = (filename) => {
+    setDlBusy(p => new Set([...p, filename]));
+    const a = document.createElement('a');
+    a.href     = `/api/download-pdf?filename=${encodeURIComponent(filename)}`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => setDlBusy(p => { const s = new Set(p); s.delete(filename); return s; }), 2500);
+  };
+
+  const hasFilter = search || fPayor || fState || fType;
+  const shown     = visible.slice(0, 250);
+
+  const selStyle = (active) => ({
+    height: 34, padding: '0 10px',
+    border: `1px solid ${active ? PUR : PUR_B}`, borderRadius: 8,
+    fontSize: 12, fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
+    background: active ? PUR_M : '#fff', color: active ? PUR : '#6B7280',
+    minWidth: 108,
+  });
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+         onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 980, height: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 72px rgba(0,0,0,0.28)', overflow: 'hidden' }}>
+
+        {/* ── Header ── */}
+        <div style={{ padding: '18px 24px', background: 'linear-gradient(135deg,#3B0764 0%,#6D28D9 55%,#7C3AED 100%)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📥</div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>Download Center</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
+                  {loading ? 'Loading documents…' : `${allDocs.length} EOC documents available · Click any row to download`}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {!loading && (
+                <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: 20 }}>
+                  {allDocs.length} PDFs
+                </span>
+              )}
+              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✕</button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Filter bar ── */}
+        <div style={{ padding: '12px 20px', borderBottom: `1px solid ${PUR_B}`, background: PUR_M, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#A78BFA', pointerEvents: 'none' }}>🔍</span>
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search plan name, payor, or filename…"
+              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 30, paddingRight: 12, height: 34, border: `1px solid ${PUR_B}`, borderRadius: 8, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: '#fff', color: '#1E293B' }}
+            />
+          </div>
+          <select value={fPayor}    onChange={e => setFPayor(e.target.value)}    style={selStyle(!!fPayor)}>
+            <option value="">All Payors</option>
+            {payors.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <select value={fState}    onChange={e => setFState(e.target.value)}    style={selStyle(!!fState)}>
+            <option value="">All States</option>
+            {states.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={fType}     onChange={e => setFType(e.target.value)}     style={selStyle(!!fType)}>
+            <option value="">All Plan Types</option>
+            {planTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          {hasFilter && (
+            <button onClick={() => { setSearch(''); setFPayor(''); setFState(''); setFType(''); }}
+              style={{ height: 34, padding: '0 12px', border: `1px solid ${PUR_B}`, borderRadius: 8, fontSize: 11.5, color: PUR, background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              ✕ Reset
+            </button>
+          )}
+        </div>
+
+        {/* ── Result count bar ── */}
+        <div style={{ padding: '7px 20px', borderBottom: `1px solid ${PUR_B}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+          <span style={{ fontSize: 11, color: '#6B7280' }}>
+            {loading ? 'Loading…' : `Showing ${shown.length} of ${visible.length} documents${hasFilter ? ' (filtered)' : ''}`}
+          </span>
+          <span style={{ fontSize: 10, color: '#9CA3AF' }}>Scroll to see more · Files download directly to your browser</span>
+        </div>
+
+        {/* ── Table ── */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9CA3AF', fontSize: 13, gap: 8 }}><Dots/> Loading documents…</div>
+          ) : shown.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: '#9CA3AF' }}>
+              <span style={{ fontSize: 32 }}>🔍</span>
+              <span style={{ fontSize: 13 }}>No documents match your filters.</span>
+              <button onClick={() => { setSearch(''); setFPayor(''); setFState(''); setFType(''); }} style={{ fontSize: 12, color: PUR, background: 'none', border: `1px solid ${PUR_B}`, borderRadius: 7, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>Clear filters</button>
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                <tr style={{ background: PUR_L, borderBottom: `2px solid ${PUR_B}` }}>
+                  {['Plan Name', 'Payor', 'State', 'Plan Type', 'Filename', 'Size', 'Download'].map((h, i) => (
+                    <th key={h} style={{ padding: '9px ' + (i === 0 || i === 6 ? '16px' : '12px'), textAlign: i === 6 ? 'center' : 'left', fontWeight: 700, color: '#4C1D95', fontSize: 11, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((doc, i) => (
+                  <DownloadRow key={doc.name} doc={doc} index={i} busy={dlBusy.has(doc.name)} onDownload={handleDownload} fmtSize={fmtSize} />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* ── Footer ── */}
+        <div style={{ padding: '11px 20px', borderTop: `1px solid ${PUR_B}`, background: PUR_M, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, color: '#6B7280' }}>
+            {visible.length > 250 ? `Showing first 250 of ${visible.length} — use search or filters to narrow results` : `${visible.length} document${visible.length !== 1 ? 's' : ''} shown`}
+          </span>
+          <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, color: PUR, background: '#fff', border: `1px solid ${PUR_B}`, borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Chart Router ─────────────────────────────────────────────────────────────
 function ChartWidget({ spec }) {
   if (!spec?.type) return null;
@@ -549,7 +770,7 @@ function relativeTime(ts) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ collapsed, onToggle, activeHistory, conversations, onSelectHistory, onDeleteHistory, onNewChat }) {
+function Sidebar({ collapsed, onToggle, activeHistory, conversations, onSelectHistory, onDeleteHistory, onNewChat, onOpenDownloadCenter }) {
   const [hoveredId,  setHoveredId]  = useState(null);
   const [menuOpenId, setMenuOpenId] = useState(null);
   if (collapsed) return (
@@ -558,8 +779,9 @@ function Sidebar({ collapsed, onToggle, activeHistory, conversations, onSelectHi
         <img src="https://drlobbystorer1.blob.core.windows.net/images/HWAI_Logo_Full.svg?v=1" alt="HWAI" style={{ height:20, width:20, objectFit:'contain' }} onError={(e)=>{e.target.style.display='none';}}/>
         <button onClick={onToggle} style={{ background:'none', border:'none', cursor:'pointer', color:'#9CA3AF', fontSize:16 }}>›</button>
       </div>
-      <div style={{ paddingTop:10 }}>
+      <div style={{ paddingTop:10, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
         <button onClick={onNewChat} style={{ width:28, height:28, borderRadius:6, background:PUR_M, border:`1px solid ${PUR_B}`, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:PUR }}>+</button>
+        <button onClick={onOpenDownloadCenter} title="Download Center" style={{ width:28, height:28, borderRadius:6, background:PUR_M, border:`1px solid ${PUR_B}`, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:PUR }}>{DL_ICON}</button>
       </div>
     </aside>
   );
@@ -630,7 +852,23 @@ function Sidebar({ collapsed, onToggle, activeHistory, conversations, onSelectHi
           );
         })}
       </div>
-      <div style={{ padding:'8px 14px', borderTop:'1px solid #F3F4F6', fontSize:9, color:'#9CA3AF', flexShrink:0 }}>v1.0.0 · HealthWorksAI</div>
+      {/* ── Download Center entry ── */}
+      <div style={{ padding:'8px 10px', borderTop:'1px solid #F3F4F6', flexShrink:0 }}>
+        <button
+          onClick={onOpenDownloadCenter}
+          style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 100%)', border:'1.5px solid #DDD6FE', cursor:'pointer', display:'flex', alignItems:'center', gap:10, fontFamily:'inherit', textAlign:'left', transition:'all .15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background='linear-gradient(135deg,#DDD6FE 0%,#EDE9FE 100%)'; e.currentTarget.style.borderColor=PUR; }}
+          onMouseLeave={e => { e.currentTarget.style.background='linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 100%)'; e.currentTarget.style.borderColor='#DDD6FE'; }}
+        >
+          <div style={{ width:30, height:30, borderRadius:8, background:PUR, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}>{DL_ICON}</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:PUR, lineHeight:1.3 }}>Download Center</div>
+            <div style={{ fontSize:10, color:'#A78BFA', marginTop:1 }}>Browse & download EOC files</div>
+          </div>
+          <svg width="6" height="10" viewBox="0 0 6 10" fill="none" style={{ flexShrink:0 }}><path d="M1 1l4 4-4 4" stroke="#A78BFA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+      </div>
+      <div style={{ padding:'6px 14px', fontSize:9, color:'#9CA3AF', flexShrink:0 }}>v1.0.0 · HealthWorksAI</div>
     </aside>
   );
 }
@@ -842,7 +1080,8 @@ export default function Home() {
   // Sidebar state
   const [collapsed,     setCollapsed]     = useState(false);
   const [activeHistory, setActiveHistory] = useState(null);
-  const [integratePC,   setIntegratePC]   = useState(false);
+  const [integratePC,        setIntegratePC]        = useState(false);
+  const [showDownloadCenter, setShowDownloadCenter] = useState(false);
 
   // Filter state — each is an array of selected values; empty = "All" (no filter)
   const [selSalesRegions, setSelSalesRegions] = useState([]);
@@ -1196,7 +1435,13 @@ export default function Home() {
         onSelectHistory={handleSelectHistory}
         onDeleteHistory={handleDeleteHistory}
         onNewChat={handleNewChat}
+        onOpenDownloadCenter={() => setShowDownloadCenter(true)}
       />
+
+      {/* ── Download Center modal ── */}
+      {showDownloadCenter && (
+        <DownloadCenter metadata={metadata} onClose={() => setShowDownloadCenter(false)} />
+      )}
 
       {/* ── Main ── */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
