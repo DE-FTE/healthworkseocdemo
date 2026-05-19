@@ -1057,20 +1057,32 @@ function ChatMsg({ msg, isStreaming }) {
 function MultiSelect({ label, options, selected, onChange, width = 148 }) {
   const [open, setOpen]       = useState(false);
   const [pending, setPending] = useState([]);
+  const [search, setSearch]   = useState('');
+  const searchRef             = useRef(null);
 
   const noneApplied = selected.length === 0;
+  const showSearch  = options.length > 20;
 
   const openDropdown = () => {
     setPending(selected);
+    setSearch('');
     setOpen(true);
   };
-  const closeDropdown = () => setOpen(false); // discard pending on backdrop click
+  const closeDropdown = () => { setOpen(false); setSearch(''); };
+
+  useEffect(() => {
+    if (open && showSearch) searchRef.current?.focus();
+  }, [open, showSearch]);
 
   const toggle = (val) =>
     setPending(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
 
-  const apply = () => { onChange(pending); setOpen(false); };
+  const apply = () => { onChange(pending); setOpen(false); setSearch(''); };
   const clearPending = () => setPending([]);
+
+  const visibleOptions = search
+    ? options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
+    : options;
 
   const pendingDiffers =
     pending.length !== selected.length || pending.some(v => !selected.includes(v));
@@ -1119,7 +1131,7 @@ function MultiSelect({ label, options, selected, onChange, width = 148 }) {
           {/* Header */}
           <div style={{ padding:'6px 10px 5px', borderBottom:'1px solid #F3F4F6', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase' }}>
-              {options.length} option{options.length !== 1 ? 's' : ''}
+              {search ? `${visibleOptions.length} / ${options.length}` : `${options.length} option${options.length !== 1 ? 's' : ''}`}
             </span>
             {pending.length > 0 && (
               <button onClick={clearPending} style={{ fontSize:10, color:PUR, background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:'inherit', fontWeight:600 }}>
@@ -1127,26 +1139,46 @@ function MultiSelect({ label, options, selected, onChange, width = 148 }) {
               </button>
             )}
           </div>
+          {/* Search input — shown only for large option lists */}
+          {showSearch && (
+            <div style={{ padding:'6px 8px', borderBottom:'1px solid #F3F4F6', flexShrink:0 }}>
+              <input
+                ref={searchRef}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search…"
+                style={{
+                  width:'100%', boxSizing:'border-box',
+                  padding:'4px 8px', height:26,
+                  border:`1px solid ${PUR_B}`, borderRadius:5,
+                  fontSize:11.5, fontFamily:'inherit', outline:'none',
+                  background:'#fff', color:'#1E293B',
+                }}
+              />
+            </div>
+          )}
           {/* Options list */}
           <div style={{ overflowY:'auto', flex:1 }}>
             {/* "All" — always first; checked when nothing specific is selected */}
-            <label
-              style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 10px', cursor:'pointer', fontSize:11.5, lineHeight:1.4, borderBottom:`1px solid #F3F4F6` }}
-              onMouseEnter={e => e.currentTarget.style.background = PUR_M}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <input
-                type="checkbox"
-                checked={pending.length === 0}
-                onChange={() => setPending([])}
-                style={{ accentColor:PUR, flexShrink:0, cursor:'pointer', width:13, height:13 }}
-              />
-              <span style={{ fontWeight:700, color: pending.length === 0 ? PUR : '#6B7280' }}>All</span>
-            </label>
-            {options.length === 0 && (
-              <div style={{ padding:'10px 12px', fontSize:11, color:'#9CA3AF' }}>No options</div>
+            {!search && (
+              <label
+                style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 10px', cursor:'pointer', fontSize:11.5, lineHeight:1.4, borderBottom:`1px solid #F3F4F6` }}
+                onMouseEnter={e => e.currentTarget.style.background = PUR_M}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <input
+                  type="checkbox"
+                  checked={pending.length === 0}
+                  onChange={() => setPending([])}
+                  style={{ accentColor:PUR, flexShrink:0, cursor:'pointer', width:13, height:13 }}
+                />
+                <span style={{ fontWeight:700, color: pending.length === 0 ? PUR : '#6B7280' }}>All</span>
+              </label>
             )}
-            {options.map(opt => (
+            {visibleOptions.length === 0 && (
+              <div style={{ padding:'10px 12px', fontSize:11, color:'#9CA3AF' }}>No matches</div>
+            )}
+            {visibleOptions.map(opt => (
               <label
                 key={opt}
                 style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 10px', cursor:'pointer', fontSize:11.5, color:'#1F2937', lineHeight:1.4 }}
