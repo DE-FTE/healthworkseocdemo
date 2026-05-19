@@ -634,6 +634,23 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
     const pagesPerTerm = 6;
     const finalNodes = [];
 
+    // Soft services (meals, grocery, fitness, transportation) use domain-specific
+    // priority searches. The clinical "frequency exam" order is WRONG for these:
+    //   "meal frequency exam" → dental/vision exam pages outscore meals pages because
+    //   benefits charts accumulate huge "exam" counts, filling all 6 slots with wrong pages.
+    // Domain-specific queries (e.g. "post discharge") use Tier-2 ALL-keywords scoring
+    // (+100 when ALL keywords appear on the page) which reliably outranks any benefits
+    // chart page that only mentions "post-discharge" once in passing.
+    const SOFT_SERVICES = new Set(['meal', 'meals', 'grocery', 'groceries', 'fitness', 'transportation']);
+    const SOFT_DOMAIN_SEARCHES = {
+      meal:           ['post discharge', 'post-discharge meal', 'home delivered meal'],
+      meals:          ['post discharge', 'post-discharge meal', 'home delivered meal'],
+      grocery:        ['grocery allowance', 'grocery card', 'healthy food card'],
+      groceries:      ['grocery allowance', 'grocery card', 'healthy food card'],
+      fitness:        ['fitness benefit', 'gym membership', 'exercise program'],
+      transportation: ['trip limit', 'nemt transport', 'one way trip'],
+    };
+
     for (const term of benefitTerms) {
       const key = term.toLowerCase().replace(/\s+/g, ' ').trim();
       const coreTerm = key
@@ -645,18 +662,29 @@ async function selectNodesForDoc(stored, searchQuery, queryType = 'general', ben
       const synList = BENEFIT_SYNONYMS[key] || BENEFIT_SYNONYMS[coreTerm] || [coreTerm];
 
       const allResults = [];
-      for (const syn of synList) {
-        // Priority 1: combined frequency+exam signal (finds "1 exam/year" pages)
-        allResults.push(...keywordSearch(allNodes, `${syn} frequency exam`, 20));
-        // Priority 2: copayment / cost / services (main benefit table)
-        allResults.push(...keywordSearch(allNodes, `${syn} copayment`, 25));
-        allResults.push(...keywordSearch(allNodes, `${syn} cost`, 20));
-        allResults.push(...keywordSearch(allNodes, `${syn} services`, 20));
-        // Priority 3: individual frequency/exam (broader fallback)
-        allResults.push(...keywordSearch(allNodes, `${syn} frequency`, 20));
-        allResults.push(...keywordSearch(allNodes, `${syn} exam`, 20));
-        // Priority 4: bare term (maximum recall)
-        allResults.push(...keywordSearch(allNodes, syn, 15));
+      if (SOFT_SERVICES.has(key)) {
+        // Domain-specific priority searches first (high precision, no false positives)
+        for (const q of (SOFT_DOMAIN_SEARCHES[key] || [])) {
+          allResults.push(...keywordSearch(allNodes, q, 20));
+        }
+        // Bare synonym searches (first 3 only — avoids fallback flooding from exotic synonyms)
+        for (const syn of synList.slice(0, 3)) {
+          allResults.push(...keywordSearch(allNodes, syn, 15));
+        }
+      } else {
+        for (const syn of synList) {
+          // Priority 1: combined frequency+exam signal (finds "1 exam/year" pages)
+          allResults.push(...keywordSearch(allNodes, `${syn} frequency exam`, 20));
+          // Priority 2: copayment / cost / services (main benefit table)
+          allResults.push(...keywordSearch(allNodes, `${syn} copayment`, 25));
+          allResults.push(...keywordSearch(allNodes, `${syn} cost`, 20));
+          allResults.push(...keywordSearch(allNodes, `${syn} services`, 20));
+          // Priority 3: individual frequency/exam (broader fallback)
+          allResults.push(...keywordSearch(allNodes, `${syn} frequency`, 20));
+          allResults.push(...keywordSearch(allNodes, `${syn} exam`, 20));
+          // Priority 4: bare term (maximum recall)
+          allResults.push(...keywordSearch(allNodes, syn, 15));
+        }
       }
 
       // Title-based anchoring: benefit description sections for this term.
