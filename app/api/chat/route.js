@@ -267,6 +267,13 @@ function filterRelevantDocs(loadedDocs, searchQuery, queryType, docTargets) {
     return { docs: scored.slice(0, MAX_DOCS_TO_QUERY).map(s => s.doc), missingDocs: [] };
   }
 
+  // When the user has a small explicitly-selected set (≤ MAX_DOCS_TO_QUERY plans),
+  // always query all of them — they were deliberately chosen and the user expects
+  // data from every plan. Keyword scoring is only for narrowing 100s of docs down.
+  if (loadedDocs.length <= MAX_DOCS_TO_QUERY) {
+    return { docs: scored.map(s => s.doc), missingDocs: [] };
+  }
+
   // benefit/general: only include docs with score > 0 (actually have the content)
   const relevant = scored.filter(s => s.score > 0);
 

@@ -651,22 +651,19 @@ const QUICK_INSIGHTS = [
     prompt:
 `Compare OTC and Flex Card benefits for the plans in scope.
 
-For each plan, extract:
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
-* Coverage and eligible items
-* Allowance amount and frequency
-* Wallet/card type and funding method
-* Carryover rules and expiry
-* Purchase channels (online, retail, catalog)
-* Vendor/program name
+Include these rows:
+- Covered Items / Eligible Categories
+- Allowance Amount
+- Allowance Frequency (monthly / quarterly / annually)
+- Wallet / Card Type
+- Funding Mechanism
+- Carryover Rules
+- Purchase Channels (online, retail, catalog)
+- Vendor / Program Name
 
-Also include:
-
-* Key differences summary
-* Exact EOC quotes for each data point
-* Call out missing information clearly
-
-Finally, present a summary comparison table with plan names as columns and each benefit attribute as a row (Coverage, Allowance, Wallet Type, Carryover, Channels, Vendor).`,
+After the table, add 2–3 bullet points on key differences or notable restrictions across plans.`,
   },
   {
     id:          'dental_vision_hearing',
@@ -679,20 +676,33 @@ Finally, present a summary comparison table with plan names as columns and each 
     prompt:
 `Compare Dental, Vision, and Hearing benefits for the plans in scope.
 
-For each plan and service, extract:
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Group rows by service type. Use "—" for any value not found in the documents.
 
-* Covered services and eligibility
-* Copay/coinsurance and maximum coverage limits
-* Frequency limits (e.g., exams, devices per year)
-* Included items (e.g., lenses, frames, hearing aids)
+DENTAL rows:
+- Covered Services & Eligibility
+- Copay / Coinsurance
+- Annual Maximum
+- Frequency Limits (exams, cleanings, X-rays)
+- Included Items
+- Exclusions
 
-Also provide:
+VISION rows:
+- Covered Services & Eligibility
+- Exam Copay
+- Allowance / Coverage Limit
+- Frequency Limits
+- Included Items (lenses, frames, contacts)
+- Exclusions
 
-* Notable differences across plans
-* Any restrictive conditions or exclusions
-* Exact EOC language for reference
+HEARING rows:
+- Covered Services & Eligibility
+- Exam Copay
+- Hearing Aid Benefit / Allowance
+- Frequency Limits
+- Included Items
+- Exclusions
 
-Finally, present a summary comparison table with plan names as columns and each benefit attribute as a row (e.g., Dental Copay, Dental Max, Vision Exam Copay, Vision Allowance, Hearing Exam Copay, Hearing Aid Benefit).`,
+After the table, add 2–3 bullet points on notable differences or restrictions across plans.`,
   },
   {
     id:          'meals_grocery',
@@ -705,20 +715,18 @@ Finally, present a summary comparison table with plan names as columns and each 
     prompt:
 `Compare Meals and Grocery benefits for the plans in scope.
 
-For each plan, extract:
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
-* When benefits are triggered (e.g., post-discharge, chronic conditions)
-* Number of meals or grocery allowance
-* Duration and frequency limits
-* Delivery method and vendor
+Include these rows:
+- Eligibility Trigger (post-discharge, chronic condition, etc.)
+- Meals Count / Grocery Allowance
+- Duration / Frequency Window
+- Copay (if any)
+- Delivery Method
+- Vendor / Program Name
+- Approval Requirements
 
-Also include:
-
-* Eligibility conditions and approval requirements
-* Differences in flexibility between plans (label interpretation)
-* Exact EOC references
-
-Finally, present a summary comparison table with plan names as columns and each benefit attribute as a row (Trigger, Meals Count, Grocery Allowance, Window/Frequency, Delivery Method, Vendor, Copay).`,
+After the table, add 2–3 bullet points on key differences across plans.`,
   },
 ];
 
