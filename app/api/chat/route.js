@@ -72,8 +72,12 @@ const MAX_CONTEXT_CHARS = parseInt(process.env.MAX_CONTEXT_CHARS   || '75000', 1
  * docTargets: filenames explicitly mentioned in query (empty = all docs)
  */
 async function analyzeQuery(message, history = []) {
-  const recentCtx = history.slice(-6)
-    .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content.slice(0, 400)}`)
+  // AI responses are truncated to 80 chars — just enough for topic continuity without
+  // polluting the searchQuery. A long AI response (e.g. "...exclusions for Dental, Vision,
+  // and Hearing...") caused GPT to inherit "exclusions" as the topic for the NEXT query
+  // even when the user explicitly asked about "usage limits".
+  const recentCtx = history.slice(-4)
+    .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content.slice(0, m.role === 'user' ? 300 : 80)}`)
     .join('\n');
 
   const prompt =
@@ -92,8 +96,9 @@ queryType rules:
 - "general": comparisons, summaries, multiple topics
 
 docTargets: list ONLY the EXACT document filenames/IDs as they appear verbatim in the conversation (e.g. "H0523-074-000"). If the user refers to a plan by name only (e.g. "Aetna Medicare Value Plus") without stating a filename, return an empty array — do NOT guess or infer a filename. Never include partial matches.
+PRIORITY RULE: If the current message explicitly names a benefit/service (e.g. "Dental", "OTC") AND an attribute (e.g. "usage limits", "exclusions", "copay", "allowance", "coverage"), ALWAYS derive searchQuery from THOSE exact terms. Do NOT inherit topic or attribute from a previous AI response.
 FOLLOW-UP RULE: If the current message uses "it", "same", "above", "that", "those", "the above", or does not name specific documents, INHERIT the docTargets from the most recent user message in the conversation that DID name documents.
-TOPIC RULE: If the current message is a format/display request ("show as table", "display as chart", "convert to pie"), extract the TOPIC keywords from the previous user question, not from the format instruction itself.
+FORMAT RULE: If the current message is a format/display request ("show as table", "display as chart", "convert to pie"), extract the TOPIC keywords from the previous user question, not from the format instruction itself.
 
 ${recentCtx ? `Recent conversation:\n${recentCtx}\n\n` : ''}User message: "${message}"
 
