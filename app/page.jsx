@@ -728,6 +728,90 @@ Include these rows:
 
 After the table, add 2–3 bullet points on key differences across plans.`,
   },
+  {
+    id:          'telehealth_transportation',
+    emoji:       '📲',
+    iconBg:      '#E0F7FA',
+    iconBorder:  '#B2EBF2',
+    title:       'Telehealth & Transportation',
+    description: 'Virtual care access, ride benefits, usage limits, authorization rules, and vendor programs compared side-by-side.',
+    tags:        ['Virtual care', 'Ride benefits', 'Usage limits', 'Authorization', 'Vendor'],
+    prompt:
+`Analyze Telehealth and Transportation benefits for the plans mentioned in scope.
+
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
+
+TELEHEALTH rows:
+- Types of Services Covered (virtual care, urgent care, mental health, etc.)
+- Access Channels (app, phone, website)
+- Usage Limits (visits per year)
+- Authorization Requirements
+- Vendor / Program Name
+
+TRANSPORTATION rows:
+- Types of Services Covered (rides to appointments, etc.)
+- Access Channels (app, phone, scheduling method)
+- Usage Limits (rides per year, distance)
+- Authorization Requirements
+- Vendor / Program Name
+
+After the table, add 2–3 bullet points on ease-of-access differences and any geographic or scheduling restrictions (label interpretations clearly).`,
+  },
+  {
+    id:          'fitness_wellness_inhome',
+    emoji:       '🏃',
+    iconBg:      '#F1F8E9',
+    iconBorder:  '#C5E1A5',
+    title:       'Fitness, Wellness & In-Home',
+    description: 'Gym memberships, wellness programs, home support, safety devices, and bundled perks compared across plans.',
+    tags:        ['Gym / fitness', 'Wellness programs', 'Home support', 'Devices', 'Vendor'],
+    prompt:
+`Evaluate Fitness, Wellness, and In-Home Support benefits for the plans mentioned in scope.
+
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
+
+FITNESS & WELLNESS rows:
+- Covered Services (gym, fitness classes, wellness programs)
+- Access Methods (in-person, virtual, app)
+- Usage Limits / Frequency
+- Vendor / Program Name
+
+IN-HOME SUPPORT rows:
+- Covered Services (home support, safety devices, personal care)
+- Access Methods (home delivery, scheduled visits)
+- Usage Limits / Frequency
+- Vendor / Program Name
+
+ADDITIONAL PERKS rows:
+- Bundled or Bonus Features
+- Exclusions or Restrictions
+
+After the table, add 2–3 bullet points on notable perks, restrictions, or differences across plans.`,
+  },
+  {
+    id:          'ssbci_uf',
+    emoji:       '🌟',
+    iconBg:      '#FFF8E1',
+    iconBorder:  '#FFE082',
+    title:       'SSBCI / UF Benefits',
+    description: 'Special supplemental benefits — covered categories, eligibility criteria, allowances, access process, and vendor details.',
+    tags:        ['Covered categories', 'Eligibility', 'Allowances', 'Access process', 'Vendor'],
+    prompt:
+`Analyze SSBCI (Special Supplemental Benefits for the Chronically Ill) and Uniformity Flexibility (UF) benefits for the plans mentioned in scope.
+
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
+
+Include these rows:
+- Covered Services & Benefit Categories
+- Eligibility Criteria / Qualifying Conditions
+- Allowance Amount / Limits
+- Usage Rules (frequency, carryover, expiry)
+- Access Process & Approvals
+- Vendor / Program Name
+- Unclear or Missing Details
+
+After the table, add 2–3 bullet points on example qualifying scenarios (label as interpretation) and any details that were absent or ambiguous in the documents.`,
+  },
 ];
 
 // ─── Quick Insight Card ───────────────────────────────────────────────────────
@@ -767,9 +851,9 @@ function QuickInsightCard({ insight, scopeCount, anyActive, startupDone, onRun }
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{
-            width: 46, height: 46, borderRadius: 11, flexShrink: 0,
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
             background: insight.iconBg, border: `1px solid ${insight.iconBorder}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
           }}>
             {insight.emoji}
           </div>
