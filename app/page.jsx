@@ -649,9 +649,9 @@ const QUICK_INSIGHTS = [
     description: 'Allowances, wallet types, carryover rules, purchase channels, and vendor programs — structured side-by-side.',
     tags:        ['Coverage', 'Allowance', 'Wallet type', 'Carryover', 'Channels', 'Vendor'],
     prompt:
-`Compare OTC and Flex Card benefits across these plans.
+`Compare OTC and Flex Card benefits for the plans in scope.
 
-Show in a structured grid:
+For each plan, extract:
 
 * Coverage and eligible items
 * Allowance amount and frequency
@@ -664,7 +664,9 @@ Also include:
 
 * Key differences summary
 * Exact EOC quotes for each data point
-* Call out missing information clearly`,
+* Call out missing information clearly
+
+Finally, present a summary comparison table with plan names as columns and each benefit attribute as a row (Coverage, Allowance, Wallet Type, Carryover, Channels, Vendor).`,
   },
   {
     id:          'dental_vision_hearing',
@@ -675,20 +677,22 @@ Also include:
     description: 'Copays, frequency limits, included items, and exclusions compared across plans in a single grid.',
     tags:        ['Covered services', 'Copay / limits', 'Frequency', 'Included items', 'Exclusions'],
     prompt:
-`Compare Dental, Vision, and Hearing benefits for these plans.
+`Compare Dental, Vision, and Hearing benefits for the plans in scope.
 
-Include in a grid:
+For each plan and service, extract:
 
 * Covered services and eligibility
 * Copay/coinsurance and maximum coverage limits
-* Frequency limits (e.g., exams, devices)
-* Included items (e.g., lenses, hearing aids)
+* Frequency limits (e.g., exams, devices per year)
+* Included items (e.g., lenses, frames, hearing aids)
 
 Also provide:
 
 * Notable differences across plans
 * Any restrictive conditions or exclusions
-* Exact EOC language for reference`,
+* Exact EOC language for reference
+
+Finally, present a summary comparison table with plan names as columns and each benefit attribute as a row (e.g., Dental Copay, Dental Max, Vision Exam Copay, Vision Allowance, Hearing Exam Copay, Hearing Aid Benefit).`,
   },
   {
     id:          'meals_grocery',
@@ -699,9 +703,9 @@ Also provide:
     description: 'Post-discharge meals, grocery allowances, delivery methods, eligibility triggers, and vendor details.',
     tags:        ['Trigger conditions', 'Allowance', 'Frequency', 'Delivery', 'Eligibility', 'Vendor'],
     prompt:
-`Compare Meals and Grocery benefits across these plans.
+`Compare Meals and Grocery benefits for the plans in scope.
 
-Focus on:
+For each plan, extract:
 
 * When benefits are triggered (e.g., post-discharge, chronic conditions)
 * Number of meals or grocery allowance
@@ -712,7 +716,9 @@ Also include:
 
 * Eligibility conditions and approval requirements
 * Differences in flexibility between plans (label interpretation)
-* Exact EOC references`,
+* Exact EOC references
+
+Finally, present a summary comparison table with plan names as columns and each benefit attribute as a row (Trigger, Meals Count, Grocery Allowance, Window/Frequency, Delivery Method, Vendor, Copay).`,
   },
 ];
 
