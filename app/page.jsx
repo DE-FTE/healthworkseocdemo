@@ -729,33 +729,55 @@ Include these rows:
 After the table, add 2–3 bullet points on key differences across plans.`,
   },
   {
-    id:          'telehealth_transportation',
+    id:          'telehealth',
     emoji:       '📲',
     iconBg:      '#E0F7FA',
     iconBorder:  '#B2EBF2',
-    title:       'Telehealth & Transportation',
-    description: 'Virtual care access, ride benefits, usage limits, authorization rules, and vendor programs compared side-by-side.',
-    tags:        ['Virtual care', 'Ride benefits', 'Usage limits', 'Authorization', 'Vendor'],
+    title:       'Telehealth',
+    description: 'Eligible modalities, costshare rules, platform/vendor, and virtual visit copays compared across plans.',
+    tags:        ['Modalities', 'Costshare', 'Copay', 'Platform / Vendor', 'Covered Language'],
     prompt:
-`Analyze Telehealth and Transportation benefits for the plans mentioned in scope.
+`Compare Telehealth / Remote Tech EOC benefits for the plans in scope.
 
 Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
-TELEHEALTH rows:
-- Types of Services Covered (virtual care, urgent care, mental health, etc.)
-- Access Channels (app, phone, website)
-- Usage Limits (visits per year)
-- Authorization Requirements
-- Vendor / Program Name
+Include these rows:
+- Eligible Modalities
+- Modality Specific Costshare Rule
+- Telehealth Covered Language
+- Platform / Vendor Name
+- Virtual PCP Visit Copay
+- Virtual Specialist Visit Copay
+- Virtual Physical and Speech Therapy Copay
 
-TRANSPORTATION rows:
-- Types of Services Covered (rides to appointments, etc.)
-- Access Channels (app, phone, scheduling method)
-- Usage Limits (rides per year, distance)
-- Authorization Requirements
-- Vendor / Program Name
+After the table, add 2–3 bullet points on key differences in modality coverage or copay structure across plans (label any interpretations clearly).`,
+  },
+  {
+    id:          'transportation',
+    emoji:       '🚗',
+    iconBg:      '#EDE7F6',
+    iconBorder:  '#CE93D8',
+    title:       'Transportation',
+    description: 'Ride types, geographic limits, mileage caps, scheduling windows, copay details, and rideshare eligibility compared across plans.',
+    tags:        ['Geographic limits', 'Mileage', 'Copay', 'Scheduling', 'Vendor', 'Rideshare'],
+    prompt:
+`Compare Transportation EOC benefits for the plans in scope.
 
-After the table, add 2–3 bullet points on ease-of-access differences and any geographic or scheduling restrictions (label interpretations clearly).`,
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
+
+Include these rows:
+- Geographic Limitation
+- Cancelling Window
+- Mileage Limit per Trip
+- Transport Vendor Name
+- Transport Type
+- Transportation Copay Detail
+- Transportation Covered Language
+- Scheduling Window
+- Wallet Funded Rides
+- Rideshare Allowed
+
+After the table, add 2–3 bullet points on key differences in access, geographic restrictions, or scheduling rules across plans (label any interpretations clearly).`,
   },
   {
     id:          'fitness_wellness_inhome',
