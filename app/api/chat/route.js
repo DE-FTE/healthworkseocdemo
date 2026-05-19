@@ -145,7 +145,7 @@ function extractBenefitTerms(message) {
   // just as reliably as "Dental, Vision, Hearing Exclusions" (with commas).
   // This is intentionally attribute-agnostic — exclusion/copay/allowance/etc. in
   // any position are ignored; only the service names determine multi-benefit mode.
-  const HEALTHCARE_SERVICES_RE = /\b(dental|vision|hearing|otc|over.the.counter|flex\s*card|pharmacy|chiropractic|acupuncture|podiatry|physical\s*therapy|mental\s*health|transportation|fitness|hospice|skilled\s*nursing|urgent\s*care|emergency|inpatient|outpatient)\b/gi;
+  const HEALTHCARE_SERVICES_RE = /\b(dental|vision|hearing|otc|over.the.counter|flex\s*card|pharmacy|chiropractic|acupuncture|podiatry|physical\s*therapy|mental\s*health|transportation|fitness|hospice|skilled\s*nursing|urgent\s*care|emergency|inpatient|outpatient|meals?|grocery|groceries)\b/gi;
   const leadingClause = message.split(/\binclude\s+in\s+a\b|\bprovide:|\balso\s+provide\b|\* /i)[0].trim();
   if (leadingClause.length > 0) {
     const serviceNamesFound = [];
@@ -300,6 +300,10 @@ const BENEFIT_SYNONYMS = {
   'mental health':    ['mental health', 'behavioral health', 'psychiatric'],
   transportation:     ['transportation', 'medical transport', 'non-emergency transport'],
   fitness:            ['fitness', 'gym membership', 'exercise benefit'],
+  meal:               ['meal', 'meals', 'post-discharge meal', 'post discharge meal', 'home delivered meal', 'freshly prepared meal', 'frozen meal', 'nutritional shake'],
+  meals:              ['meal', 'meals', 'post-discharge meal', 'post discharge meal', 'home delivered meal', 'freshly prepared meal', 'frozen meal', 'nutritional shake'],
+  grocery:            ['grocery', 'grocery allowance', 'grocery card', 'healthy food card', 'food allowance', 'food benefit', 'healthy food', 'produce'],
+  groceries:          ['grocery', 'grocery allowance', 'grocery card', 'healthy food card', 'food allowance', 'food benefit', 'healthy food', 'produce'],
   emergency:          ['emergency', 'emergency room', 'emergency care', 'urgent care'],
   inpatient:          ['inpatient', 'hospital stay', 'hospitalization'],
   outpatient:         ['outpatient', 'ambulatory'],
