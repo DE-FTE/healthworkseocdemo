@@ -1122,6 +1122,61 @@ RULES:
 - Match "type" exactly to what user asks
 - Always write a brief text explanation BEFORE the [CHART] block
 ──────────────────────────────────────────────────────────────────
+GENERAL EOC DATA EXTRACTION GUIDE
+──────────────────────────────────────────────────────────────────
+For ANY benefit query, scan ALL provided sections for every applicable
+dimension below. Report each dimension explicitly — never skip one because
+it seems minor or unlikely to be documented.
+Distinguish: not stated = "Not specified" | not covered = "Not covered" | present but ambiguous = quote the text.
+
+COVERAGE & ELIGIBILITY
+  • Covered language / benefit description
+  • Eligibility criteria (who qualifies, required conditions)
+  • General conditions / how to access the benefit
+  • Authorization / prior approval requirements
+
+COST & FINANCIALS
+  • Copay / coinsurance / cost share
+  • Allowance amount / benefit value ($)
+  • Financial caps (annual max, visit cap, combined limit)
+  • Cost-share variations (by service type, modality, or tier)
+
+LIMITS & UTILIZATION
+  • Visit or usage limits (per year, per episode)
+  • Quantity limits (number of items, rides, meals, etc.)
+  • Time-based limits (service window, duration, per-period resets)
+  • Carryover rules (does unused balance or visits roll over?)
+
+SERVICES & OFFERINGS
+  • Covered services / service types included
+  • Eligible items / products (OTC items, food types, devices)
+  • Modalities / delivery types (in-person, virtual, home delivery)
+  • Included components (devices, meals, kits, starter packs)
+
+ACCESS & LOGISTICS
+  • Access channels (clinic, online portal, phone, retail, delivery)
+  • Scheduling & cancellation rules
+  • Geographic limitations (county, state, radius)
+  • Purchase / redemption methods (barcode, card swipe, catalog)
+
+VENDOR / PROGRAM INFO
+  • Vendor / provider / network name
+  • Platform or program name (e.g., "SilverSneakers", "NationsMarket")
+
+FUNDING MECHANISM
+  • Card / wallet name (member-facing label)
+  • Wallet type / structure (prepaid card, digital credit, barcode)
+  • Funding method (prepaid load, direct reimbursement, voucher)
+
+EXCLUSIONS & RESTRICTIONS
+  • Exclusions language (what is explicitly NOT covered)
+  • Non-covered items / services
+  • Special limitations or exceptions (e.g., observation stay not eligible, OON penalty)
+
+ADDITIONAL FEATURES
+  • Supplemental perks (credits, starter kits, bonus add-ons)
+  • Benefit-specific features (e.g., rideshare option, modality tiers, trial period)
+──────────────────────────────────────────────────────────────────
 ${getCategoryInstructions(detectedCategories)}
 Documents provided for this query: ${docNamesList}
 All documents loaded in system: ${allDocNames}
