@@ -72,12 +72,14 @@ const MAX_CONTEXT_CHARS = parseInt(process.env.MAX_CONTEXT_CHARS   || '75000', 1
  * docTargets: filenames explicitly mentioned in query (empty = all docs)
  */
 async function analyzeQuery(message, history = []) {
-  // AI responses are truncated to 80 chars — just enough for topic continuity without
-  // polluting the searchQuery. A long AI response (e.g. "...exclusions for Dental, Vision,
-  // and Hearing...") caused GPT to inherit "exclusions" as the topic for the NEXT query
-  // even when the user explicitly asked about "usage limits".
-  const recentCtx = history.slice(-4)
-    .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content.slice(0, m.role === 'user' ? 300 : 80)}`)
+  // Only include user messages — AI response body is never needed to extract searchQuery,
+  // queryType, or docTargets, and including it caused topic contamination (e.g. an AI
+  // response beginning "here is the exclusion data..." caused GPT to inherit "exclusions"
+  // as the topic for the next query even when the user explicitly asked about "usage limits").
+  const recentCtx = history
+    .filter(m => m.role === 'user')
+    .slice(-3)
+    .map(m => `User: ${m.content.slice(0, 300)}`)
     .join('\n');
 
   const prompt =
@@ -97,7 +99,8 @@ queryType rules:
 
 docTargets: list ONLY the EXACT document filenames/IDs as they appear verbatim in the conversation (e.g. "H0523-074-000"). If the user refers to a plan by name only (e.g. "Aetna Medicare Value Plus") without stating a filename, return an empty array — do NOT guess or infer a filename. Never include partial matches.
 PRIORITY RULE: If the current message explicitly names a benefit/service (e.g. "Dental", "OTC") AND an attribute (e.g. "usage limits", "exclusions", "copay", "allowance", "coverage"), ALWAYS derive searchQuery from THOSE exact terms. Do NOT inherit topic or attribute from a previous AI response.
-FOLLOW-UP RULE: If the current message uses "it", "same", "above", "that", "those", "the above", or does not name specific documents, INHERIT the docTargets from the most recent user message in the conversation that DID name documents.
+SCOPE RULE: If the current message contains "plans in scope", "all plans", "plans mentioned", "for all plans", "the plans in scope", "plans mentioned in scope", or any phrase meaning all selected plans, return docTargets as [] — do NOT inherit from previous messages even if a previous message named a specific document.
+FOLLOW-UP RULE: If the current message uses "it", "same", "above", "that", "those", "the above", or does not name specific documents AND does not trigger the SCOPE RULE, INHERIT the docTargets from the most recent user message in the conversation that DID name documents.
 FORMAT RULE: If the current message is a format/display request ("show as table", "display as chart", "convert to pie"), extract the TOPIC keywords from the previous user question, not from the format instruction itself.
 
 ${recentCtx ? `Recent conversation:\n${recentCtx}\n\n` : ''}User message: "${message}"
@@ -593,15 +596,18 @@ ${parts.join('\n')}
 
 // ─── PHASE 2b: Keyword selection (benefit queries) ────────────────────────────
 
-async function selectNodesForDoc(stored, searchQuery, queryType = 'general', benefitTerms = []) {
+async function selectNodesForDoc(stored, searchQuery, queryType = 'general', benefitTerms = [], docCount = 1) {
   const allNodes = flattenAllNodes(stored.structure)
     .filter(n => n.text && n.text.length > 50);
   if (allNodes.length === 0) return [];
 
   const isMultiBenefit = benefitTerms.length > 1;
+  // Scale up node limit when querying 3+ docs simultaneously — each doc gets fewer retrieval
+  // slots relative to a single-doc query, causing relevant pages to be pushed out.
+  const baseLimit = docCount >= 3 ? Math.min(MAX_NODES_PER_DOC + 2, 10) : MAX_NODES_PER_DOC;
   const nodeLimit = isMultiBenefit
     ? Math.min(benefitTerms.length * 3, 12)
-    : MAX_NODES_PER_DOC;
+    : baseLimit;
 
   // ── Multi-benefit: bypass GPT selection entirely ──────────────────────────
   //
@@ -938,7 +944,7 @@ Table:
     // Detect which of the 12 schema categories apply — drives per-category field
     // injection in the Phase 3 system prompt (only runs for benefit/general queries)
     const detectedCategories = (queryType === 'benefit' || queryType === 'general')
-      ? detectBenefitCategories(message, searchQuery, benefitTerms)
+      ? detectBenefitCategories(message, '', benefitTerms)
       : [];
 
     // ── PHASE 1: Local pre-filtering (zero API calls) ───────────────────────
@@ -988,7 +994,7 @@ Table:
         if (queryType === 'plan_info') {
           nodes = getIntroPagesForDoc(doc.stored);
         } else {
-          nodes = await selectNodesForDoc(doc.stored, searchQuery, queryType, benefitTerms);
+          nodes = await selectNodesForDoc(doc.stored, searchQuery, queryType, benefitTerms, targetDocs.length);
         }
         return { filename: doc.filename, nodes, stored: doc.stored };
       })
