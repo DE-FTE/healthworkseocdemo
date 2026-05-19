@@ -52,9 +52,10 @@ const MAX_NODES_PER_DOC = parseInt(process.env.MAX_NODES_PER_QUERY || '6', 10);
 // 6 nodes per doc — restored to richer context now that smart filtering reduces doc count
 const MAX_DOCS_TO_QUERY = parseInt(process.env.MAX_DOCS_TO_QUERY   || '5', 10);
 // Max 5 docs — but smart scoring means specific queries only hit 2-3 docs anyway
-const MAX_CONTEXT_CHARS = parseInt(process.env.MAX_CONTEXT_CHARS   || '90000', 10);
-// 90k chars ≈ 21k context tokens + 4k overhead = ~25k total, safely under the 30k TPM limit.
-// 2-doc queries get 45k/doc = ~12-13 pages per doc without truncation.
+const MAX_CONTEXT_CHARS = parseInt(process.env.MAX_CONTEXT_CHARS   || '75000', 10);
+// 75k chars ≈ 22k context tokens. System prompt (incl. extraction guide + category instructions)
+// adds ~2.5k tokens; history ~1k; max_tokens 3k → ~28.5k total, safely under 30k TPM limit.
+// Reduced from 90k after adding the General Extraction Guide expanded the system prompt by ~700 tokens.
 
 // ─── PHASE 0: Query rewriting + type classification ───────────────────────────
 
