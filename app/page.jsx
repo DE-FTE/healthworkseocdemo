@@ -646,63 +646,106 @@ const QUICK_INSIGHTS = [
     iconBg:      '#FFF7ED',
     iconBorder:  '#FED7AA',
     title:       'OTC & Flex Card',
-    description: 'Allowances, wallet types, carryover rules, purchase channels, and vendor programs — structured side-by-side.',
-    tags:        ['Coverage', 'Allowance', 'Wallet type', 'Carryover', 'Channels', 'Vendor'],
+    description: 'Buying limits, wallet types, eligible products/services, allowance details, network requirements, and covered language compared across plans.',
+    tags:        ['Buying Limits', 'Wallet Type', 'Allowance', 'Products', 'Vendor', 'Network'],
     prompt:
 `Compare OTC and Flex Card benefits for the plans in scope.
 
 Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
 Include these rows:
-- Covered Items / Eligible Categories
-- Allowance Amount
-- Allowance Frequency (monthly / quarterly / annually)
-- Wallet / Card Type
-- Funding Mechanism
-- Carryover Rules
-- Purchase Channels (online, retail, catalog)
-- Vendor / Program Name
+- Buying Limits
+- Card / Wallet Name
+- Flex Eligible Product List
+- Flex Eligible Services
+- OTC Vendor Name
+- OTC/Flex Allowance Amount Detail
+- Network Requirement
+- OTC/Flex Covered Language
+- Product List Link / References
+- Wallet Type
 
 After the table, add 2–3 bullet points on key differences or notable restrictions across plans.`,
   },
   {
-    id:          'dental_vision_hearing',
+    id:          'dental',
     emoji:       '🦷',
     iconBg:      '#EFF6FF',
     iconBorder:  '#BFDBFE',
-    title:       'Dental, Vision & Hearing',
-    description: 'Copays, frequency limits, included items, and exclusions compared across plans in a single grid.',
-    tags:        ['Covered services', 'Copay / limits', 'Frequency', 'Included items', 'Exclusions'],
+    title:       'Dental',
+    description: 'Covered services, copays, annual caps, financial cap structure, vendor/network, prior auth requirements, and exclusions compared across plans.',
+    tags:        ['Copay', 'Annual Max', 'Cap Structure', 'Prior Auth', 'Vendor', 'Exclusions'],
     prompt:
-`Compare Dental, Vision, and Hearing benefits for the plans in scope.
+`Compare Dental EOC benefits for the plans in scope.
 
-Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Group rows by service type. Use "—" for any value not found in the documents.
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
-DENTAL rows:
+Include these rows:
 - Covered Services & Eligibility
 - Copay / Coinsurance
 - Annual Maximum
+- Dental Financial Cap Structure (Combined vs Separate)
 - Frequency Limits (exams, cleanings, X-rays)
 - Included Items
-- Exclusions
+- Prior Auth / Clinical Review Required
+- Dental Vendor / Network Name
+- Dental Exclusions Language
 
-VISION rows:
+After the table, add 2–3 bullet points on key differences in coverage, cost structure, or exclusions across plans.`,
+  },
+  {
+    id:          'vision',
+    emoji:       '👁️',
+    iconBg:      '#F0FDF4',
+    iconBorder:  '#BBF7D0',
+    title:       'Vision',
+    description: 'Exam copays, diabetic eye exam copay, allowances, frequency limits, covered items, provider/vendor, and exclusions compared across plans.',
+    tags:        ['Exam Copay', 'Diabetic Eye', 'Allowance', 'Frequency', 'Vendor', 'Exclusions'],
+    prompt:
+`Compare Vision EOC benefits for the plans in scope.
+
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
+
+Include these rows:
 - Covered Services & Eligibility
 - Exam Copay
+- Diabetic Eye Exam Copay
 - Allowance / Coverage Limit
 - Frequency Limits
 - Included Items (lenses, frames, contacts)
-- Exclusions
+- Vision Care Provider / Vendor
+- Vision Exclusions Language
 
-HEARING rows:
+After the table, add 2–3 bullet points on key differences in coverage, allowances, or exclusions across plans.`,
+  },
+  {
+    id:          'hearing',
+    emoji:       '👂',
+    iconBg:      '#FDF4FF',
+    iconBorder:  '#E9D5FF',
+    title:       'Hearing',
+    description: 'Aid benefits, premium aid cost share, battery supply, trial period, warranty, vendor, and exclusions compared across plans.',
+    tags:        ['Aid Benefit', 'Premium Aids', 'Batteries', 'Warranty', 'Vendor', 'Exclusions'],
+    prompt:
+`Compare Hearing EOC benefits for the plans in scope.
+
+Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
+
+Include these rows:
 - Covered Services & Eligibility
 - Exam Copay
 - Hearing Aid Benefit / Allowance
+- Advanced / Premium Aids Cost Share
 - Frequency Limits
 - Included Items
-- Exclusions
+- Batteries per Aid
+- Battery Supply Duration
+- Trial Period
+- Warranty
+- Hearing Aid Vendor / Program
+- Hearing Exclusions Language
 
-After the table, add 2–3 bullet points on notable differences or restrictions across plans.`,
+After the table, add 2–3 bullet points on key differences in aid coverage, accessory benefits, or exclusions across plans.`,
   },
   {
     id:          'meals_grocery',
@@ -710,23 +753,30 @@ After the table, add 2–3 bullet points on notable differences or restrictions 
     iconBg:      '#F0FDF4',
     iconBorder:  '#BBF7D0',
     title:       'Meals & Grocery',
-    description: 'Post-discharge meals, grocery allowances, delivery methods, eligibility triggers, and vendor details.',
-    tags:        ['Trigger conditions', 'Allowance', 'Frequency', 'Delivery', 'Eligibility', 'Vendor'],
+    description: 'Post-discharge meals, grocery allowances, eligible food items, wallet name, vendor, delivery/payment methods, carryover, and exclusions compared across plans.',
+    tags:        ['Post-Discharge', 'Grocery Allowance', 'Food Wallet', 'Vendor', 'Delivery', 'Carryover'],
     prompt:
-`Compare Meals and Grocery benefits for the plans in scope.
+`Compare Meals and Grocery EOC benefits for the plans in scope.
 
 Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
 Include these rows:
-- Eligibility Trigger (post-discharge, chronic condition, etc.)
-- Meals Count / Grocery Allowance
-- Duration / Frequency Window
-- Copay (if any)
-- Delivery Method
-- Vendor / Program Name
-- Approval Requirements
+- Post-Discharge Meals Covered
+- Post-Discharge Meals Count
+- Post-Discharge Meals Window
+- Post-Discharge Meals Copay
+- Grocery / Healthy Food Allowance
+- Food Wallet Name
+- Eligible Food Items
+- Healthy Food / Grocery Covered Language
+- Meals Vendor Name
+- Payment / Delivery Method
+- Purchase Channels
+- Delivery Fees
+- Carryover Allowed
+- Meals Exclusions Language
 
-After the table, add 2–3 bullet points on key differences across plans.`,
+After the table, add 2–3 bullet points on key differences in allowances, eligibility conditions, or delivery options across plans.`,
   },
   {
     id:          'telehealth',
@@ -838,107 +888,127 @@ After the table, add 2–3 bullet points on example qualifying scenarios (label 
 
 // ─── Quick Insight Card ───────────────────────────────────────────────────────
 function QuickInsightCard({ insight, scopeCount, anyActive, startupDone, onRun }) {
-  const [warn,    setWarn]    = useState(null); // null | 'loading' | 'no_docs' | 'no_scope' | 'too_many'
+  const [warn,    setWarn]    = useState(null);
   const [hovered, setHovered] = useState(false);
+  const leaveTimer = useRef(null);
 
   const scopeOk = anyActive && startupDone && scopeCount >= 1 && scopeCount <= 4;
 
+  const enterHover = () => { clearTimeout(leaveTimer.current); setHovered(true); };
+  const leaveHover = () => { leaveTimer.current = setTimeout(() => setHovered(false), 120); };
+
   const handleClick = () => {
-    if (!startupDone)  { setWarn('loading');  return; }
-    if (!anyActive)    { setWarn('no_docs');   return; }
-    if (scopeCount === 0) { setWarn('no_scope'); return; }
-    if (scopeCount > 4)   { setWarn('too_many'); return; }
+    if (!startupDone)     { setWarn('loading');  return; }
+    if (!anyActive)       { setWarn('no_docs');   return; }
+    if (scopeCount === 0) { setWarn('no_scope');  return; }
+    if (scopeCount > 4)   { setWarn('too_many');  return; }
     setWarn(null);
     onRun(insight.prompt);
   };
 
   return (
-    <div style={{ width: 310, flexShrink: 0 }}>
-      {/* ── Card ── */}
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      {/* ── Compact chip ── */}
       <div
         onClick={handleClick}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={enterHover}
+        onMouseLeave={leaveHover}
         style={{
-          background: '#fff',
-          border: `1.5px solid ${hovered ? PUR : PUR_B}`,
-          borderRadius: 14,
-          padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: hovered ? insight.iconBg : '#fff',
+          border: `1.5px solid ${hovered ? insight.iconBorder : '#E2E8F0'}`,
+          borderRadius: 12, padding: '7px 13px 7px 9px',
           cursor: 'pointer',
-          transition: 'box-shadow .18s, border-color .18s, transform .18s',
-          boxShadow: hovered ? '0 6px 20px rgba(124,58,237,0.13)' : '0 1px 4px rgba(0,0,0,0.05)',
-          transform: hovered ? 'translateY(-2px)' : 'none',
+          transition: 'background .15s, border-color .15s, box-shadow .15s',
+          boxShadow: hovered ? '0 4px 14px rgba(0,0,0,0.10)' : '0 1px 3px rgba(0,0,0,0.05)',
+          userSelect: 'none',
         }}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: insight.iconBg, border: `1px solid ${insight.iconBorder}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-          }}>
-            {insight.emoji}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E1B4B' }}>{insight.title}</span>
-              {startupDone && scopeCount > 0 && (
-                <span style={{
-                  fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
-                  background: scopeOk ? '#DCFCE7' : '#FFF7ED',
-                  color:      scopeOk ? '#166534' : '#92400E',
-                  border:     `1px solid ${scopeOk ? '#86EFAC' : '#FCD34D'}`,
-                  padding: '2px 8px', borderRadius: 10,
-                }}>
-                  {scopeCount} plan{scopeCount !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3, lineHeight: 1.45 }}>
-              {insight.description}
-            </div>
-          </div>
-        </div>
-
-        {/* Tag strip */}
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 11 }}>
-          {insight.tags.map(tag => (
-            <span key={tag} style={{
-              fontSize: 10, background: PUR_M, color: PUR,
-              padding: '2px 8px', borderRadius: 8, border: `1px solid ${PUR_B}`,
-            }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {/* Footer */}
         <div style={{
-          display: 'flex', justifyContent: 'flex-end',
-          marginTop: 12, paddingTop: 10, borderTop: `1px solid ${PUR_B}`,
+          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          background: insight.iconBg, border: `1px solid ${insight.iconBorder}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
         }}>
-          <span style={{
-            fontSize: 11.5, fontWeight: 600,
-            color: scopeOk ? PUR : '#9CA3AF',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}>
-            {!startupDone
-              ? 'Loading…'
-              : scopeOk
-                ? '▶ Run Analysis →'
-                : scopeCount === 0
-                  ? 'Select 1–4 plans to run'
-                  : scopeCount > 4
-                    ? `Narrow to 1–4 plans (${scopeCount} in scope)`
-                    : 'Select plans using filters above'}
-          </span>
+          {insight.emoji}
         </div>
+        <span style={{ fontSize: 12.5, fontWeight: 650, color: '#1E1B4B', whiteSpace: 'nowrap' }}>
+          {insight.title}
+        </span>
       </div>
 
-      {/* ── Scope guidance callout (shown below card on click when scope is wrong) ── */}
+      {/* ── Hover popover ── */}
+      {(hovered && !warn) && (
+        <div
+          onMouseEnter={enterHover}
+          onMouseLeave={leaveHover}
+          style={{
+            position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 300,
+            width: 272,
+            background: '#fff',
+            border: `1.5px solid ${PUR_B}`,
+            borderRadius: 14, padding: '13px 15px',
+            boxShadow: '0 8px 28px rgba(124,58,237,0.16)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+              background: insight.iconBg, border: `1px solid ${insight.iconBorder}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+            }}>
+              {insight.emoji}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E1B4B' }}>{insight.title}</span>
+            {startupDone && scopeCount > 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 'auto',
+                background: scopeOk ? '#DCFCE7' : '#FFF7ED',
+                color:      scopeOk ? '#166534' : '#92400E',
+                border:     `1px solid ${scopeOk ? '#86EFAC' : '#FCD34D'}`,
+                padding: '2px 8px', borderRadius: 10,
+              }}>
+                {scopeCount} plan{scopeCount !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.5, marginBottom: 9 }}>
+            {insight.description}
+          </div>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 11 }}>
+            {insight.tags.map(tag => (
+              <span key={tag} style={{
+                fontSize: 10, background: PUR_M, color: PUR,
+                padding: '2px 8px', borderRadius: 8, border: `1px solid ${PUR_B}`,
+              }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+          <div style={{
+            paddingTop: 9, borderTop: `1px solid ${PUR_B}`,
+            display: 'flex', justifyContent: 'flex-end',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: scopeOk ? PUR : '#9CA3AF' }}>
+              {!startupDone
+                ? 'Loading…'
+                : scopeOk
+                  ? '▶ Click to run →'
+                  : scopeCount === 0
+                    ? 'Select 1–4 plans to run'
+                    : scopeCount > 4
+                      ? `Narrow to 1–4 plans (${scopeCount} in scope)`
+                      : 'Select plans using filters above'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Scope warning callout ── */}
       {warn && (
         <div style={{
-          marginTop: 6, background: '#FFFBEB', border: '1px solid #FCD34D',
+          position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 300,
+          width: 272,
+          background: '#FFFBEB', border: '1px solid #FCD34D',
           borderRadius: 10, padding: '10px 12px', fontSize: 11.5,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
@@ -1802,7 +1872,7 @@ export default function Home() {
                 <p style={{ fontSize:11.5, color:'#9CA3AF', margin:'0 0 14px', lineHeight:1.5 }}>
                   One-click deep-dives across your selected plans. Select 1–4 plans using the filters above, then click an insight to run it instantly.
                 </p>
-                <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:10, flexWrap:'wrap', overflow:'visible' }}>
                   {QUICK_INSIGHTS.map(insight => (
                     <QuickInsightCard
                       key={insight.id}
