@@ -1070,18 +1070,25 @@ Table:
     //   "no information available"  (was missing)
     //   "cannot find / cannot provide information"  (was missing)
     const NOT_FOUND_PATTERN = new RegExp([
-      // "not X in the provided/given/above/excerpts/context/..."
-      'not (found|mentioned|available|provided|specified|included|present|contained|covered) in (the |these )?(provided|given|these|this|above|excerpts?|context|sections?|documents?|information)',
-      // standalone "Not found" at start of sentence or label
-      '\\bnot found\\b',
+      // "not [adverb?] X in the provided/given/above/excerpts/context/..."
+      // handles: "not found", "not explicitly detailed", "not clearly specified", etc.
+      'not (?:explicitly|clearly|specifically|directly|fully|explicitly)?\\s*' +
+        '(found|mentioned|available|provided|specified|included|present|contained|covered|detailed|described|addressed|discussed|documented|stated|indicated)' +
+        ' in (the |these )?(provided|given|these|this|above|excerpts?|context|sections?|documents?|information)',
+      // standalone "Not found" / "Not detailed" / "Not specified" at sentence start or as label
+      '\\bnot (found|detailed|specified|mentioned|available|described|documented)\\b',
       // "does not provide/contain/include (specific/any) information/details"
-      'does not (provide|contain|include|have) (specific |any )?(information|details?|data)',
+      'does not (provide|contain|include|have|detail|specify|mention|describe) (specific |any |explicit )?(information|details?|data)',
       // "no (specific) information available/provided/found"
-      'no (specific |relevant )?(information|data|details?) (is |are )?(available|provided|found)',
+      'no (specific |relevant |explicit )?(information|data|details?) (is |are )?(available|provided|found|given)',
       // "cannot find/provide/locate information"
-      'cannot (find|locate|provide|retrieve|access) (the |any |this |specific )?(information|details?|data|answer)',
+      'cannot (find|locate|provide|retrieve|access|identify|determine) (the |any |this |specific )?(information|details?|data|answer)',
       // "I (could not|was unable to) find information"
-      'i (could not|was unable to|am unable to) (find|locate|identify|provide)',
+      'i (could not|was unable to|am unable to) (find|locate|identify|provide|determine|extract)',
+      // "the document does not X" — catches "the document does not specify / detail / mention"
+      'the (document|excerpt|section|text|pdf) does not (provide|contain|include|have|detail|specify|mention|describe)',
+      // "information is not available / not present"
+      'information is not (available|present|provided|included|found|detailed|specified)',
     ].join('|'), 'i');
 
     const generateAnswer = async (ctx) => {
