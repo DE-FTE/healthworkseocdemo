@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EOC &amp; Dental Playground – Query Template &amp; Best Practices Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    background: #fff;
+    line-height: 1.65;
+  }
+
+  .page {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 52px 60px 60px 60px;
+  }
+
+  /* ─── Title block ─── */
+  .doc-title {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #1B5EA3;
+    margin-bottom: 4px;
+  }
+  .doc-subtitle {
+    font-size: 10pt;
+    color: #444;
+    margin-bottom: 32px;
+  }
+
+  /* ─── Section headings ─── */
+  h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #1B5EA3;
+    margin: 30px 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1.5px solid #D0E4F7;
+    padding-bottom: 5px;
+  }
+  h2 .ico { font-size: 14pt; }
+
+  h3 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #1B5EA3;
+    margin: 16px 0 6px 0;
+  }
+
+  h4 {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #374151;
+    margin: 12px 0 4px 0;
+  }
+
+  /* ─── Body ─── */
+  p { margin-bottom: 10px; }
+
+  ul {
+    list-style: disc;
+    padding-left: 22px;
+    margin-bottom: 8px;
+  }
+  ul li { margin-bottom: 5px; }
+  ul ul { list-style: circle; margin-top: 4px; margin-bottom: 4px; }
+
+  /* ─── Prompt card ─── */
+  .prompt-card {
+    border: 1px solid #BFDBFE;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .prompt-header {
+    background: #EFF6FF;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #BFDBFE;
+  }
+  .prompt-num {
+    background: #1B5EA3;
+    color: #fff;
+    font-size: 9pt;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .prompt-category {
+    font-size: 9pt;
+    font-weight: 600;
+    color: #1B5EA3;
+    background: #DBEAFE;
+    padding: 2px 9px;
+    border-radius: 10px;
+    border: 1px solid #BFDBFE;
+  }
+  .prompt-body {
+    padding: 10px 14px 12px 14px;
+  }
+  .prompt-text {
+    font-size: 10.5pt;
+    font-style: italic;
+    color: #1e3a5f;
+    background: #F8FAFF;
+    border-left: 3px solid #1B5EA3;
+    padding: 7px 12px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .prompt-why {
+    font-size: 9.5pt;
+    color: #374151;
+  }
+  .prompt-why strong { color: #1B5EA3; }
+
+  .tag {
+    display: inline-block;
+    font-size: 8.5pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-right: 5px;
+    margin-bottom: 4px;
+  }
+  .tag-scope    { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+  .tag-format   { background: #EDE9FE; color: #5B21B6; border: 1px solid #C4B5FD; }
+  .tag-specific { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+  .tag-compare  { background: #FFE4E6; color: #9F1239; border: 1px solid #FECDD3; }
+  .tag-analytic { background: #E0F2FE; color: #075985; border: 1px solid #7DD3FC; }
+
+  /* ─── Pattern table ─── */
+  .pattern-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 9.5pt;
+  }
+  .pattern-table th {
+    background: #1B5EA3;
+    color: #fff;
+    padding: 7px 12px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .pattern-table td {
+    padding: 6px 12px;
+    border: 1px solid #D0E4F7;
+    vertical-align: top;
+  }
+  .pattern-table tr:nth-child(even) td { background: #F0F7FF; }
+  .pattern-table tr:nth-child(odd)  td { background: #fff; }
+
+  /* ─── Callout ─── */
+  .callout {
+    background: #F0F7FF;
+    border-left: 4px solid #1B5EA3;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .callout.warn {
+    background: #FFFBEB;
+    border-left-color: #F59E0B;
+  }
+  .callout.tip {
+    background: #F0FDF4;
+    border-left-color: #22C55E;
+  }
+
+  /* ─── Do / Don't ─── */
+  .dos-donts { display: flex; gap: 18px; margin: 10px 0 4px 0; }
+  .dos-donts .col {
+    flex: 1;
+    border: 1px solid #D0E4F7;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dos-donts .col h3 { margin-top: 0; font-size: 10.5pt; }
+  .dos-donts .col.dos   h3 { color: #166534; }
+  .dos-donts .col.donts h3 { color: #991B1B; }
+  .dos-donts .col.dos   { background: #F0FDF4; }
+  .dos-donts .col.donts { background: #FFF1F2; }
+  .dos-donts ul { margin-bottom: 0; }
+
+  /* ─── Cheat sheet ─── */
+  .cheatsheet {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  .cheatsheet th {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 7px 12px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .cheatsheet td {
+    padding: 6px 12px;
+    border: 1px solid #D0E4F7;
+    vertical-align: top;
+  }
+  .cheatsheet tr:nth-child(even) td { background: #F0F7FF; }
+  .cheatsheet tr:nth-child(odd)  td { background: #fff; }
+  .cheatsheet td:first-child { font-weight: 600; color: #1B5EA3; white-space: nowrap; }
+
+  /* ─── Footer ─── */
+  .footer {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid #D0E4F7;
+    font-size: 9pt;
+    color: #666;
+    text-align: center;
+  }
+
+  @media print {
+    @page { margin: 16mm 16mm 16mm 16mm; size: A4; }
+    body { font-size: 10pt; }
+    .page { padding: 0; max-width: 100%; }
+    .dos-donts { flex-direction: column; gap: 10px; }
+    h2, h3 { page-break-after: avoid; }
+    .prompt-card { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Title ── -->
+  <div class="doc-title">EOC &amp; Dental Playground — Query Template &amp; Best Practices Guide</div>
+  <div class="doc-subtitle">Reference Version: 1.0 &nbsp;|&nbsp; HealthWorksAI &nbsp;|&nbsp; For Analysts &amp; Plan Teams</div>
+
+  <!-- ── Purpose ── -->
+  <h2><span class="ico">🎯</span> Purpose</h2>
+  <p>
+    This guide gives you <strong>10 ready-to-use template prompts</strong> and the best-practice
+    principles behind them. Understanding <em>why</em> each template is written the way it is
+    will help you write your own queries that get accurate, complete responses from the EOC
+    &amp; Dental Playground chatbot.
+  </p>
+  <div class="callout">
+    <strong>How to use this guide:</strong> Start with the template prompts as-is, then adapt them
+    by swapping benefit names or adding specific fields. The annotations explain the design patterns
+    — apply those same patterns to any benefit category.
+  </div>
+
+  <!-- ── Anatomy of a great query ── -->
+  <h2><span class="ico">🔬</span> Anatomy of a Great Query</h2>
+  <p>Every high-accuracy query typically combines three elements:</p>
+  <table class="pattern-table">
+    <thead>
+      <tr><th>Element</th><th>What it does</th><th>Example</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Scope anchor</strong></td>
+        <td>Tells the AI which plans to search. Without this, the AI may guess or use a stale scope from a prior message.</td>
+        <td>"for the selected plans", "for the plans in scope", "across the plans in scope"</td>
+      </tr>
+      <tr>
+        <td><strong>Specific benefit &amp; field</strong></td>
+        <td>Names the exact benefit category and, where possible, the specific data point. Vague topics produce vague answers.</td>
+        <td>"dental exclusions", "preventive dental coverage amount", "OTC allowance and wallet type"</td>
+      </tr>
+      <tr>
+        <td><strong>Output format</strong></td>
+        <td>Tells the AI how to present results. Without this, responses may be long prose instead of a structured, scannable layout.</td>
+        <td>"in a table", "side-by-side tabular format", "as a comparison table with plans as columns"</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="callout tip">
+    <strong>Rule of thumb:</strong> If your query has all three elements above, you will almost always get a well-structured, accurate response. Missing even one (especially the scope anchor) is the most common cause of incomplete or off-target answers.
+  </div>
+
+  <!-- ── 10 Template Prompts ── -->
+  <h2><span class="ico">📝</span> 10 Template Prompts with Annotations</h2>
+  <p>Each prompt below is ready to use. The annotations explain the design pattern so you can build variations.</p>
+
+  <!-- 1 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">1</div>
+      <span class="prompt-category">Transportation</span>
+      <span class="tag tag-compare">Comparison</span>
+      <span class="tag tag-scope">Scoped</span>
+      <span class="tag tag-format">Table</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Compare transportation benefits for the selected plans and show the differences in a table.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> "selected plans" anchors scope; "compare" and "show the differences" signals the AI to produce a side-by-side structure; "in a table" controls the output format.<br/>
+        <strong>Key fields extracted:</strong> Trip limits, mileage limits, transport type, rideshare allowed, copay, scheduling/cancellation windows, geographic limitations, vendor.<br/>
+        <strong>Variation:</strong> <em>"Compare transportation benefits for the plans in scope. Highlight which plans allow rideshare and include the mileage limit per trip."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">2</div>
+      <span class="prompt-category">Meals &amp; Grocery</span>
+      <span class="tag tag-scope">Scoped</span>
+      <span class="tag tag-specific">All fields</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Can you summarize all meal and grocery benefits available in the selected plans?</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> "all…benefits" signals the AI to extract every sub-field (post-discharge meals, grocery allowance, food wallet, vendor, delivery method) rather than stopping at the first value found. "selected plans" anchors scope.<br/>
+        <strong>Key fields extracted:</strong> Post-discharge meals count/window/copay, grocery/healthy food allowance, food wallet name, eligible food items, purchase channels, carryover allowed, vendor, exclusions.<br/>
+        <strong>Variation:</strong> <em>"Summarize all meal and grocery benefits for the plans in scope. Show post-discharge meal details and grocery allowance amounts separately."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">3</div>
+      <span class="prompt-category">Dental</span>
+      <span class="tag tag-scope">Scoped</span>
+      <span class="tag tag-specific">All fields</span>
+      <span class="tag tag-format">Table</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Show all dental coverage details for the plans in scope in a tabular format.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> "all dental coverage details" triggers the AI's full dental extraction schema (9+ fields). "in a tabular format" ensures results are scannable. "plans in scope" is the preferred scope anchor phrase — it maps precisely to the filter state.<br/>
+        <strong>Key fields extracted:</strong> Covered services, copay/coinsurance, annual maximum, cap structure (combined vs separate), frequency limits, included items, prior auth, vendor/network, exclusions.<br/>
+        <strong>Variation:</strong> <em>"Show all dental coverage details for the plans in scope. Include the dental financial cap structure (combined vs separate) and prior auth requirements."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">4</div>
+      <span class="prompt-category">OTC &amp; Flex Card</span>
+      <span class="tag tag-analytic">Discovery</span>
+      <span class="tag tag-specific">Detail drill-down</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Which plans offer Flex Card benefits? Please include the benefit details.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> This two-part pattern — first identify which plans have the benefit, then pull the details — avoids comparing plans where the benefit doesn't exist. The phrase "benefit details" triggers a full OTC/Flex Card field extraction.<br/>
+        <strong>Key fields extracted:</strong> Card/wallet name, allowance amount, wallet type, buying limits, flex eligible products/services, OTC vendor, network requirement, product list reference.<br/>
+        <strong>Tip:</strong> Use this "Which plans offer X?" pattern whenever you're unsure which plans have a benefit before comparing. Then follow up with a comparison query.<br/>
+        <strong>Variation:</strong> <em>"Which plans offer wallet-funded transportation rides? Include the wallet name, funding amount, and carryover rules."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">5</div>
+      <span class="prompt-category">Dental</span>
+      <span class="tag tag-compare">Comparison</span>
+      <span class="tag tag-specific">Single field</span>
+      <span class="tag tag-scope">Scoped</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Compare the dental exclusions across the selected plans.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> Targeting a <em>single specific field</em> (exclusions) within a category produces the most accurate, focused response. The AI doesn't need to extract everything — it can concentrate all retrieval effort on the exclusion language sections.<br/>
+        <strong>Best for:</strong> Deep-dive into one data point across many plans. Use this pattern when you already know which benefit you're looking at and want to compare one dimension.<br/>
+        <strong>More single-field examples:</strong>
+        <ul style="margin-top:6px;">
+          <li><em>"Compare the hearing aid vendor programs across the selected plans."</em></li>
+          <li><em>"What are the prior auth requirements for dental across the plans in scope?"</em></li>
+          <li><em>"Compare the Telehealth covered language for the plans in scope."</em></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">6</div>
+      <span class="prompt-category">Dental</span>
+      <span class="tag tag-analytic">Analytical</span>
+      <span class="tag tag-analytic">Reasoning</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Can you tell me which plan has the strongest dental offering and why?</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> Asking "which plan has the strongest X and why?" prompts the AI to synthesize and rank, not just list. It forces a conclusion with supporting evidence rather than a raw data dump.<br/>
+        <strong>Best used:</strong> After narrowing to 2–4 plans with filters. With many plans in scope the AI will still answer, but the comparison will be less focused.<br/>
+        <strong>Tip:</strong> For a fairer ranking, specify the criteria: <em>"Which plan has the strongest dental offering in terms of annual maximum and preventive coverage frequency? Show your reasoning."</em><br/>
+        <strong>Variation:</strong> <em>"Which of the selected plans offers the most generous OTC card benefit and why? Compare the allowance amounts and carryover rules."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">7</div>
+      <span class="prompt-category">Dental</span>
+      <span class="tag tag-specific">Named fields</span>
+      <span class="tag tag-scope">Scoped</span>
+      <span class="tag tag-format">Table</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Show the preventive and comprehensive dental coverage amounts for the selected plans.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> Using the <em>exact field names</em> from the EOC document schema ("preventive dental", "comprehensive dental", "coverage amount") dramatically improves retrieval precision. The AI's extraction guide uses these exact terms, so matching them reduces the chance of the AI looking in the wrong section.<br/>
+        <strong>Golden rule:</strong> When you know the official field name, use it verbatim. Compare:<br/>
+        <ul style="margin-top:6px;">
+          <li>❌ Less precise: <em>"What dental stuff is covered?"</em></li>
+          <li>✅ More precise: <em>"What is the preventive dental financial cap and comprehensive dental financial cap structure for the selected plans?"</em></li>
+        </ul>
+        <strong>Variation:</strong> <em>"Show the preventive and comprehensive dental max coverage amounts, and indicate whether the cap structure is combined or separate, for the plans in scope."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">8</div>
+      <span class="prompt-category">Drug / Pharmacy</span>
+      <span class="tag tag-compare">Comparison</span>
+      <span class="tag tag-scope">Scoped</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Compare the drug benefits offered by the selected plans.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> Straightforward comparison with a scope anchor. The AI will search for pharmacy/prescription drug sections in the EOC documents.<br/>
+        <strong>⚠️ Important caveat:</strong> Detailed Part D drug tier and formulary data is generally not embedded in standard EOC supplement documents — it lives in the plan's standalone formulary. If responses are thin, it means the specific drug detail isn't in the indexed EOC files. In that case, ask more broadly:<br/>
+        <em>"What drug coverage or pharmacy benefit language appears in the EOC documents for the selected plans?"</em><br/>
+        <strong>Better alternative:</strong> For prescription drug analysis, use the GenieAI chatbot which has PBP-structured data including formulary fields.
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">9</div>
+      <span class="prompt-category">Hearing &amp; Vision</span>
+      <span class="tag tag-compare">Multi-benefit</span>
+      <span class="tag tag-scope">Scoped</span>
+      <span class="tag tag-format">Table</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Can you summarize the hearing and vision benefits offered by the selected plans and present the information in a table?</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> Combining two related benefits in one query is efficient, and the AI has dedicated extraction schemas for both Hearing and Vision. "Summarize…and present in a table" gives both a scope instruction (extract all) and a format instruction.<br/>
+        <strong>Key fields — Hearing:</strong> Aid benefit/allowance, premium aids cost share, batteries per aid, battery supply duration, trial period, warranty, vendor, exclusions.<br/>
+        <strong>Key fields — Vision:</strong> Exam copay, diabetic eye exam copay, allowance/coverage limit, frequency limits, included items (frames, lenses, contacts), vision care provider/vendor, exclusions.<br/>
+        <strong>Tip:</strong> For deeper accuracy on either, follow up with a dedicated single-benefit query: <em>"Now show me all hearing aid details for the same plans, including battery supply and warranty."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="prompt-card">
+    <div class="prompt-header">
+      <div class="prompt-num">10</div>
+      <span class="prompt-category">OTC &amp; Flex Card</span>
+      <span class="tag tag-compare">Side-by-side</span>
+      <span class="tag tag-scope">Scoped</span>
+      <span class="tag tag-format">Tabular</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-text">Show a side-by-side tabular comparison of OTC benefits for the plans in scope.</div>
+      <div class="prompt-why">
+        <strong>Why it works:</strong> "Side-by-side tabular" is the clearest format instruction you can give — the AI outputs a table with plans as columns and benefit attributes as rows, which is the easiest format to scan across many plans. "plans in scope" is the cleanest scope anchor.<br/>
+        <strong>Key fields extracted:</strong> Buying limits, card/wallet name, flex eligible products/services, OTC vendor, allowance amount, network requirement, OTC/Flex covered language, product list reference, wallet type.<br/>
+        <strong>Variation:</strong> <em>"Show a side-by-side tabular comparison of OTC benefits for the plans in scope. Include allowance amount, wallet type, carryover policy, and OTC vendor."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Query patterns ── -->
+  <h2><span class="ico">🧩</span> Query Design Patterns</h2>
+  <p>Beyond the 10 templates, here are the reusable patterns that make any query more accurate:</p>
+
+  <h3>Pattern A — Scope + Benefit + Format</h3>
+  <p style="font-size:9.5pt; color:#374151; margin-bottom:6px;">The most reliable all-purpose structure:</p>
+  <div class="callout">
+    <strong>Template:</strong> "Compare/Show/Summarize [benefit + specific fields] for the plans in scope [in a table / side-by-side]."<br/><br/>
+    <strong>Examples:</strong><br/>
+    • "Compare the SSBCI/VBID eligibility criteria and wallet structure for the plans in scope in a table."<br/>
+    • "Summarize all telehealth benefits for the selected plans, including eligible modalities and virtual PCP copay, in a table."
+  </div>
+
+  <h3>Pattern B — Discovery then Detail</h3>
+  <p style="font-size:9.5pt; color:#374151; margin-bottom:6px;">Use when you don't know which plans have a benefit:</p>
+  <div class="callout">
+    <strong>Step 1:</strong> "Which of the selected plans offer [benefit]?"<br/>
+    <strong>Step 2:</strong> "For those plans, show me the full [benefit] details in a table." (Follow-up in same conversation — the AI remembers the scope.)<br/><br/>
+    <strong>Example:</strong><br/>
+    • Step 1: "Which plans offer wallet-funded transportation rides?"<br/>
+    • Step 2: "For those plans, compare the wallet name, funding amount, carryover policy, and rideshare eligibility."
+  </div>
+
+  <h3>Pattern C — Named Field Drill-Down</h3>
+  <p style="font-size:9.5pt; color:#374151; margin-bottom:6px;">Highest accuracy: target a specific field by its official name:</p>
+  <div class="callout">
+    <strong>Template:</strong> "What is the [exact field name] for the plans in scope?"<br/><br/>
+    <strong>High-value field names to use verbatim:</strong><br/>
+    • "dental financial cap structure (combined vs separate)"<br/>
+    • "modality specific costshare rule" (Telehealth)<br/>
+    • "SSBCI/VBID covered language"<br/>
+    • "post-discharge meals window and count"<br/>
+    • "advanced/premium aids cost share" (Hearing)<br/>
+    • "wallet funded rides" (Transportation)<br/>
+    • "OTC/Flex allowance amount detail" + "buying limits"
+  </div>
+
+  <h3>Pattern D — Analytical Synthesis</h3>
+  <p style="font-size:9.5pt; color:#374151; margin-bottom:6px;">For insights, not just data:</p>
+  <div class="callout">
+    <strong>Template:</strong> "Which plan has the [strongest/most generous/most restrictive] [benefit] and why? Compare [specific criteria]."<br/><br/>
+    <strong>Examples:</strong><br/>
+    • "Which plan has the most comprehensive telehealth coverage? Compare eligible modalities and virtual copay rates."<br/>
+    • "Which plan's hearing aid benefit is most generous in terms of allowance and included accessories?"
+  </div>
+
+  <!-- ── Category-specific tips ── -->
+  <h2><span class="ico">💡</span> Category-Specific Query Tips</h2>
+
+  <table class="pattern-table">
+    <thead>
+      <tr><th>Benefit</th><th>Best query phrasing</th><th>Avoid</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Dental</strong></td>
+        <td>Include "preventive dental", "comprehensive dental", "cap structure", "prior auth" by name</td>
+        <td>"What dental does the plan cover?" — too vague</td>
+      </tr>
+      <tr>
+        <td><strong>Vision</strong></td>
+        <td>Ask for "diabetic eye exam copay" and "eyewear allowance" separately from routine exam copay</td>
+        <td>Combining vision + hearing in one query when you need full detail on both</td>
+      </tr>
+      <tr>
+        <td><strong>Hearing</strong></td>
+        <td>Use "advanced/premium aids cost share", "batteries per aid", "trial period", "warranty"</td>
+        <td>"Hearing aid coverage" alone — misses tier structure and accessories</td>
+      </tr>
+      <tr>
+        <td><strong>OTC / Flex</strong></td>
+        <td>Ask for "card/wallet name", "buying limits", "flex eligible product list" explicitly</td>
+        <td>"OTC benefits" alone — the AI needs signal to extract the product list reference</td>
+      </tr>
+      <tr>
+        <td><strong>Transportation</strong></td>
+        <td>Include "geographic limitation", "mileage limit per trip", "rideshare allowed", "wallet funded rides"</td>
+        <td>Asking "how many rides?" without asking about the scheduling/cancellation window</td>
+      </tr>
+      <tr>
+        <td><strong>Telehealth</strong></td>
+        <td>Use "eligible modalities", "modality specific costshare", "virtual PCP copay", "platform/vendor"</td>
+        <td>"Telehealth coverage" — doesn't trigger copay-per-modality extraction</td>
+      </tr>
+      <tr>
+        <td><strong>Meals / Grocery</strong></td>
+        <td>Ask for grocery allowance AND post-discharge meals as two separate sub-questions, or name both explicitly</td>
+        <td>"Food benefits" — many plans have both a grocery card and a separate post-discharge meals benefit; vague queries miss one</td>
+      </tr>
+      <tr>
+        <td><strong>SSBCI / VBID</strong></td>
+        <td>Ask for "eligibility criteria", "wallet structure", "food and produce / grocery card", "SSBCI/VBID covered language" explicitly</td>
+        <td>Broad SSBCI queries without naming the sub-fields — coverage is condition-targeted and easy to over-simplify</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Filters and scope ── -->
+  <h2><span class="ico">🔍</span> Using Filters for Better Accuracy</h2>
+  <p>The filters at the top of the page are the most powerful accuracy lever available — they narrow the document corpus before the AI even starts searching.</p>
+  <ul>
+    <li><strong>For Quick Insights:</strong> Select <strong>1–4 plans</strong> using the filters. With fewer plans, the AI allocates more retrieval capacity per plan and returns richer field-level detail.</li>
+    <li><strong>For free-form queries:</strong> Filter to the relevant payor, state, or plan type first. This ensures the AI searches the right subset of documents, not all 898.</li>
+    <li><strong>Plan Name filter:</strong> The most targeted option. When you know the exact plan, pin it here before querying — this directs the AI to a single document and maximises the context budget.</li>
+    <li><strong>SNP Type filter:</strong> Use this when comparing D-SNP vs non-SNP SSBCI benefits, as eligibility language differs significantly.</li>
+  </ul>
+  <div class="callout warn">
+    <strong>⚠️ Scope anchor vs filter:</strong> The filters determine <em>which documents are loaded</em>. The phrase "for the plans in scope" in your query tells the AI to use <em>all loaded documents</em>. If you do not apply filters first, "plans in scope" means all 898 plans — and the AI will query only the top 5 by keyword relevance, which may not be the ones you want.
+  </div>
+
+  <!-- ── Do's and Don'ts ── -->
+  <h2><span class="ico">📌</span> Do's and Don'ts</h2>
+  <div class="dos-donts">
+    <div class="col dos">
+      <h3>✅ Do's</h3>
+      <ul>
+        <li>Always include a <strong>scope anchor</strong> ("for the selected plans", "for the plans in scope")</li>
+        <li>Specify the <strong>output format</strong> ("in a table", "side-by-side", "as a comparison")</li>
+        <li>Use <strong>exact field names</strong> when you know them (e.g. "dental financial cap structure", "modality specific costshare rule")</li>
+        <li>Ask for <strong>"all" details</strong> when you want comprehensive extraction, not just the headline figure</li>
+        <li>Use <strong>1–4 plan filters</strong> before running Quick Insights for highest accuracy</li>
+        <li>Follow up in the <strong>same conversation</strong> — the AI remembers context and can drill deeper without repeating the scope</li>
+        <li>Ask <strong>"which plan has the strongest/most X?"</strong> when you want synthesis, not just a data table</li>
+        <li>Request charts with <strong>"show as bar chart" / "show as table"</strong> to reformat any prior answer</li>
+      </ul>
+    </div>
+    <div class="col donts">
+      <h3>❌ Don'ts</h3>
+      <ul>
+        <li>Avoid vague queries like <strong>"What benefits does this plan have?"</strong> — always name the specific benefit category</li>
+        <li>Don't ask about <strong>all 898 plans at once</strong> without filtering — the AI queries at most 5 documents per response</li>
+        <li>Don't rely on this tool for <strong>Part D drug formulary details</strong> — that data lives outside EOC documents (use GenieAI)</li>
+        <li>Don't treat AI responses as final without <strong>checking the cited source pages</strong> — citations are provided for a reason</li>
+        <li>Avoid starting a new conversation for every follow-up — <strong>stay in the same thread</strong> to retain context and save scope-setting steps</li>
+        <li>Don't combine more than <strong>3–4 benefit categories</strong> in a single query — each additional category dilutes retrieval depth</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Quick reference cheat sheet ── -->
+  <h2><span class="ico">⚡</span> Quick Reference Cheat Sheet</h2>
+  <table class="cheatsheet">
+    <thead>
+      <tr><th>Goal</th><th>Query pattern to use</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Compare one benefit across plans</td>
+        <td>"Compare [benefit] for the plans in scope in a table."</td>
+      </tr>
+      <tr>
+        <td>Get all fields for a benefit</td>
+        <td>"Show all [benefit] details for the plans in scope in a tabular format."</td>
+      </tr>
+      <tr>
+        <td>Find which plans have a benefit</td>
+        <td>"Which of the selected plans offer [benefit]? Include the key details."</td>
+      </tr>
+      <tr>
+        <td>Compare a single field across plans</td>
+        <td>"Compare the [field name] across the selected plans."</td>
+      </tr>
+      <tr>
+        <td>Get a ranking / best plan</td>
+        <td>"Which plan has the strongest/most generous [benefit] and why?"</td>
+      </tr>
+      <tr>
+        <td>Check exclusions</td>
+        <td>"Compare the [benefit] exclusions language across the plans in scope."</td>
+      </tr>
+      <tr>
+        <td>Drill deeper after a response</td>
+        <td>"For the same plans, now show me [specific sub-field] in more detail."</td>
+      </tr>
+      <tr>
+        <td>Change output format</td>
+        <td>"Show the above as a bar chart." / "Reformat that as a table."</td>
+      </tr>
+      <tr>
+        <td>Multi-benefit summary</td>
+        <td>"Summarize [benefit A] and [benefit B] for the plans in scope and present in a table."</td>
+      </tr>
+      <tr>
+        <td>Verify a specific plan</td>
+        <td>Filter to that plan by name first, then ask the benefit question without scope anchor — only that plan's doc is loaded.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    EOC &amp; Dental Playground — Query Template &amp; Best Practices Guide &nbsp;|&nbsp; HealthWorksAI &nbsp;|&nbsp; v1.0 &nbsp;|&nbsp; Confidential
+  </div>
+
+</div>
+</body>
+</html>

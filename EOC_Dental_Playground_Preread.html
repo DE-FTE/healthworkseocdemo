@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EOC &amp; Dental Playground – Pre-Read</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&family=Segoe+UI:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    background: #fff;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 52px 60px 60px 60px;
+  }
+
+  /* ─── Header ─── */
+  .doc-title {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #1B5EA3;
+    margin-bottom: 4px;
+  }
+  .doc-subtitle {
+    font-size: 10pt;
+    color: #444;
+    margin-bottom: 32px;
+  }
+
+  /* ─── Section headings ─── */
+  h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #1B5EA3;
+    margin: 28px 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1.5px solid #D0E4F7;
+    padding-bottom: 5px;
+  }
+  h2 .ico { font-size: 14pt; }
+
+  h3 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #1B5EA3;
+    margin: 16px 0 6px 0;
+  }
+
+  /* ─── Body text ─── */
+  p {
+    margin-bottom: 10px;
+    color: #1a1a1a;
+  }
+
+  /* ─── Lists ─── */
+  ul {
+    list-style: disc;
+    padding-left: 22px;
+    margin-bottom: 8px;
+  }
+  ul li {
+    margin-bottom: 5px;
+  }
+  ul ul {
+    list-style: circle;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* ─── Bold labels ─── */
+  strong { color: #1a1a1a; }
+
+  /* ─── Benefit table ─── */
+  .benefit-grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 9.5pt;
+  }
+  .benefit-grid th {
+    background: #1B5EA3;
+    color: #fff;
+    padding: 7px 12px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .benefit-grid td {
+    padding: 6px 12px;
+    border: 1px solid #D0E4F7;
+    vertical-align: top;
+  }
+  .benefit-grid tr:nth-child(even) td {
+    background: #F0F7FF;
+  }
+  .benefit-grid tr:nth-child(odd) td {
+    background: #fff;
+  }
+
+  /* ─── Callout box ─── */
+  .callout {
+    background: #F0F7FF;
+    border-left: 4px solid #1B5EA3;
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 10pt;
+    color: #1a1a1a;
+  }
+  .callout.note {
+    background: #FFF8E1;
+    border-left-color: #F59E0B;
+  }
+
+  /* ─── Do / Don't columns ─── */
+  .dos-donts {
+    display: flex;
+    gap: 20px;
+    margin: 10px 0;
+  }
+  .dos-donts .col {
+    flex: 1;
+    background: #F8FAFC;
+    border: 1px solid #D0E4F7;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dos-donts .col h3 {
+    margin-top: 0;
+    font-size: 10.5pt;
+  }
+  .dos-donts .col.dos h3 { color: #166534; }
+  .dos-donts .col.donts h3 { color: #991B1B; }
+  .dos-donts .col ul { margin-bottom: 0; }
+
+  /* ─── Steps ─── */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding-left: 0;
+    margin: 10px 0;
+  }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 9px;
+  }
+  .steps li::before {
+    content: counter(step);
+    background: #1B5EA3;
+    color: #fff;
+    font-weight: 700;
+    font-size: 9pt;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ─── Footer ─── */
+  .footer {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid #D0E4F7;
+    font-size: 9pt;
+    color: #666;
+    text-align: center;
+  }
+
+  /* ─── Print ─── */
+  @media print {
+    @page { margin: 18mm 18mm 18mm 18mm; size: A4; }
+    body { font-size: 10.5pt; }
+    .page { padding: 0; max-width: 100%; }
+    .dos-donts { flex-direction: column; gap: 10px; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Title Block ── -->
+  <div class="doc-title">EOC &amp; Dental Playground — AI-Powered Benefits Analyzer</div>
+  <div class="doc-subtitle">Release Version: 1.0 &nbsp;|&nbsp; HealthWorksAI &nbsp;|&nbsp; Beta Release</div>
+
+  <!-- ── Overview ── -->
+  <h2><span class="ico">🧠</span> Overview</h2>
+  <p>
+    The <strong>EOC &amp; Dental Playground</strong> marks HealthWorksAI's milestone in enabling
+    intuitive, AI-driven analysis of Evidence of Coverage (EOC) documents for Medicare Advantage
+    plans. Backed by a RAG (Retrieval-Augmented Generation) engine grounded directly in source EOC
+    files, this tool enables analysts and plan teams to query, explore, and compare Medicare
+    Advantage benefits through a conversational interface — built similar to ChatGPT or Copilot,
+    but purpose-built for EOC benefit data.
+  </p>
+  <p>
+    In this version, you get access to <strong>898 EOC documents</strong> spanning multiple payors,
+    states, plan types, and SNP types. Every AI response is citation-grounded — each answer traces
+    back to specific passages in the source EOC files so you can verify accuracy instantly.
+  </p>
+  <div class="callout note">
+    * This tool is designed for supplemental benefit analysis from EOC documents. For PBP-structured
+    data queries, enrollment trends, or predictive analytics, please refer to GenieAI or reach out
+    to the HealthWorksAI team.
+  </div>
+
+  <!-- ── Data Coverage ── -->
+  <h2><span class="ico">📊</span> Data Coverage Summary</h2>
+  <ul>
+    <li><strong>EOC Documents:</strong> 898 documents available (Medicare Advantage plans)</li>
+    <li><strong>Filter Dimensions:</strong> Sales Region, Payor, State, County, Plan Type, SNP Type, Plan Name</li>
+    <li><strong>Benefit Groups Covered (9 categories):</strong></li>
+  </ul>
+
+  <table class="benefit-grid">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Benefit Category</th>
+        <th>Key Data Points Extracted</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>OTC &amp; Flex Card</strong></td>
+        <td>Buying limits, card/wallet name, flex eligible products &amp; services, allowance amount, OTC vendor, network requirement, wallet type</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Dental</strong></td>
+        <td>Covered services, copay/coinsurance, annual max, cap structure, frequency limits, prior auth, vendor/network, exclusions</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Vision</strong></td>
+        <td>Exam copay, diabetic eye exam copay, allowance, frequency limits, included items, vision care provider, exclusions</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>Hearing</strong></td>
+        <td>Aid benefit/allowance, premium aids cost share, batteries per aid, battery supply, trial period, warranty, vendor, exclusions</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>Meals &amp; Grocery</strong></td>
+        <td>Post-discharge meals count/window/copay, grocery allowance, food wallet, eligible food items, vendor, delivery method, carryover</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><strong>Telehealth</strong></td>
+        <td>Eligible modalities, modality-specific costshare, platform/vendor, virtual PCP/specialist/PT copay, covered language</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><strong>Transportation</strong></td>
+        <td>Geographic limitation, cancelling window, mileage limit, transport vendor, transport type, copay, scheduling window, rideshare</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><strong>Fitness, Wellness &amp; In-Home</strong></td>
+        <td>Gym/fitness covered services, access methods, usage limits, in-home support services, bundled perks, vendor</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><strong>SSBCI / UF Benefits</strong></td>
+        <td>General support for living, eligibility criteria, food &amp; produce/grocery card, SSBCI/VBID covered language, vendor, exclusions, wallet structure</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Key Features ── -->
+  <h2><span class="ico">✅</span> Key Features</h2>
+  <ul>
+    <li>
+      <strong>RAG-Powered Responses:</strong> Every answer is grounded in source EOC documents
+      with citations — no hallucinations, fully traceable.
+    </li>
+    <li>
+      <strong>Quick Insights (9 categories):</strong> One-click deep-dive analyses across benefit
+      categories. Hover over any chip to preview the analysis scope before running.
+    </li>
+    <li>
+      <strong>Multi-Plan Comparison:</strong> Narrow to 1–4 plans using filters for focused,
+      side-by-side benefit comparisons in a structured table.
+    </li>
+    <li>
+      <strong>Download Center:</strong> Browse and download EOC files directly from the interface.
+    </li>
+    <li>
+      <strong>PC Integration:</strong> Connect with the Plan Comparison module via the
+      "Integrate PC" toggle for cross-tool workflows.
+    </li>
+    <li>
+      <strong>Flexible Filtering:</strong> Slice the document corpus by Sales Region, Payor, State,
+      County, Plan Type, SNP Type, or Plan Name before querying.
+    </li>
+  </ul>
+
+  <!-- ── Features & Functionalities ── -->
+  <h2><span class="ico">🧰</span> Features and Functionalities</h2>
+  <ul>
+    <li>Filter and narrow plans using 6 independent dimension selectors</li>
+    <li>Hover Quick Insight chips to preview description, tags, and plan count before running</li>
+    <li>Click any Quick Insight to instantly generate a structured comparison table across selected plans</li>
+    <li>Ask free-form follow-up questions about any benefit detail in the same conversation thread</li>
+    <li>Citations displayed in responses — click to trace answers back to the source EOC passage</li>
+    <li>Download EOC source files directly from the Download Center panel</li>
+    <li>Stats banner shows filtered vs. total document scope at a glance (e.g., "898 documents / 898 EOCs available")</li>
+    <li>Conversation history automatically maintained within the session</li>
+  </ul>
+
+  <!-- ── Use Cases ── -->
+  <h2><span class="ico">📋</span> Use Cases Supported</h2>
+  <ul>
+    <li>
+      <strong>Benefit benchmarking across plans</strong>
+      <ul>
+        <li>Compare OTC allowance amounts and wallet structures across all plans in a state</li>
+        <li>What is the average hearing aid allowance for D-SNP plans in Florida in 2026?</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Supplemental benefit deep-dives</strong>
+      <ul>
+        <li>Summarize SSBCI eligibility criteria and grocery card details for plans in scope</li>
+        <li>Which plans offer rideshare as part of their Transportation benefit?</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Telehealth and virtual care analysis</strong>
+      <ul>
+        <li>Compare virtual PCP copays and eligible modalities across selected plans</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Dental/Vision/Hearing comparison</strong>
+      <ul>
+        <li>What is the dental financial cap structure — combined vs. separate — for these plans?</li>
+        <li>Do any plans cover advanced/premium hearing aids with a trial period?</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Post-discharge meals and grocery allowance review</strong>
+      <ul>
+        <li>How many post-discharge meals are covered and over what window?</li>
+      </ul>
+    </li>
+    <li>
+      <strong>EOC file retrieval</strong>
+      <ul>
+        <li>Download source EOC documents for any plan via the Download Center</li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- ── Usage Guidelines ── -->
+  <h2><span class="ico">📌</span> Usage Guidelines</h2>
+
+  <div class="dos-donts">
+    <div class="col dos">
+      <h3>✅ Do's</h3>
+      <ul>
+        <li>Narrow to <strong>1–4 plans</strong> using filters before running Quick Insights for focused, accurate comparisons</li>
+        <li>Use specific plan names, payors, or geographies to target the right document subset</li>
+        <li>Ask follow-up questions within the same conversation to drill deeper into a benefit</li>
+        <li>Cross-reference the <strong>citation links</strong> in responses to verify against the source EOC</li>
+        <li>Use the <strong>Download Center</strong> to pull raw EOC files for in-depth review</li>
+      </ul>
+    </div>
+    <div class="col donts">
+      <h3>❌ Don'ts</h3>
+      <ul>
+        <li>Avoid running Quick Insights with all 898 plans in scope — accuracy improves significantly with a focused subset</li>
+        <li>Do not rely on responses for regulatory filings or actuarial computations</li>
+        <li>Avoid vague or ambiguous queries without specifying plan or benefit context</li>
+        <li>Do not treat AI responses as final without checking the cited source passages</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Access Instructions ── -->
+  <h2><span class="ico">🔑</span> Access Instructions</h2>
+  <ol class="steps">
+    <li>Log in to the HealthWorksAI portal and navigate to the EOC &amp; Dental Playground module</li>
+    <li>Use the filter bar at the top to select your Sales Region, Payor, State, Plan Type, SNP Type, and/or Plan Name</li>
+    <li>
+      Choose one of two modes:
+      <ul>
+        <li><strong>Quick Insights</strong> — hover over a benefit chip and click to run an instant structured comparison</li>
+        <li><strong>Free-form query</strong> — type your question in the chat bar and press Ask</li>
+      </ul>
+    </li>
+    <li>Review the AI response, follow citations to source EOC passages, and ask follow-up questions as needed</li>
+    <li>Use the <strong>Download Center</strong> (bottom-left) to access raw EOC files for any plan</li>
+  </ol>
+
+  <!-- ── Reporting & Feedback ── -->
+  <h2><span class="ico">📩</span> Reporting &amp; Feedback</h2>
+  <h3>Your Feedback is Important</h3>
+  <p>
+    We are continuously improving extraction accuracy across all benefit categories. If you notice
+    a response that is incorrect, incomplete, or missing a data point, please flag it — your
+    inputs directly shape the next iteration of prompt tuning and retrieval improvements.
+  </p>
+  <p>
+    You can reach out to us at: <strong>SAMTeam@healthworksai.com</strong>
+  </p>
+
+  <!-- ── Acknowledgements ── -->
+  <h2><span class="ico">🙌</span> Acknowledgements</h2>
+  <p>
+    Thank you for being an early user of the EOC &amp; Dental Playground. Your feedback in this
+    Beta phase is invaluable as we evolve toward a future where Medicare EOC analysis is as
+    simple as a conversation. We look forward to your continued partnership.
+  </p>
+  <p style="margin-top:10px;">— <strong>HealthWorksAI Team</strong><br/>SAMTeam@healthworksai.com</p>
+
+  <div class="footer">
+    EOC &amp; Dental Playground &nbsp;|&nbsp; HealthWorksAI &nbsp;|&nbsp; Beta Release v1.0 &nbsp;|&nbsp; Confidential
+  </div>
+
+</div>
+</body>
+</html>

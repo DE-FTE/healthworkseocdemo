@@ -308,7 +308,9 @@ const BENEFIT_SYNONYMS = {
   hearing:            ['hearing', 'hearing aid', 'audiolog', 'routine hearing', 'auditory', 'audiometric'],
   otc:                ['otc', 'over-the-counter', 'over the counter'],
   'flex card':        ['flex card', 'flex benefit', 'allowance card', 'supplemental benefit'],
-  pharmacy:           ['pharmacy', 'prescription drug', 'drug coverage'],
+  pharmacy:           ['pharmacy', 'prescription drug', 'drug coverage', 'drug benefit', 'Part D'],
+  deductible:         ['deductible', 'deductible stage', 'drug deductible', 'annual deductible', 'initial coverage stage', 'coverage gap', 'catastrophic stage'],
+  drug:               ['drug', 'prescription drug', 'drug coverage', 'deductible stage', 'tier', 'drug tier', 'formulary', 'Part D'],
   chiropractic:       ['chiropractic', 'chiropractor', 'spinal manipulation'],
   acupuncture:        ['acupuncture'],
   podiatry:           ['podiatry', 'foot care', 'routine foot'],
@@ -343,6 +345,7 @@ const CATEGORY_PATTERNS = [
   { category: 'Telehealth / Remote Tech', re: /\b(telehealth|telemedicine|virtual visit|virtual care|video visit|phone visit|remote tech|teladoc|amwell)\b/i },
   { category: 'Rewards & Incentives',     re: /\b(reward|incentive|healthy action|earn credit|wallet credit|member reward|points)\b/i },
   { category: 'SSBCI / VBID',            re: /\b(ssbci|vbid|chronically ill|chronic condition|value.based insurance|special supplement|primarily health)\b/i },
+  { category: 'Pharmacy / Drug',         re: /\b(drug|deductible|deductible stage|prescription|formulary|pharmacy|part\s*d|drug tier|tier\s*[1-5]|initial coverage|coverage gap|catastrophic|copayment stage|donut hole)\b/i },
 ];
 
 function detectBenefitCategories(message, searchQuery, benefitTerms = []) {
@@ -586,6 +589,21 @@ function getCategoryInstructions(categories) {
   • exclusions                           → "no alcohol; landlord permission required for rental mod"
   • additional_health_benefits           → short list/dict of "benefit: $X / period" for other health-related items
   KEY RULE: SSBCI/VBID benefits are condition-targeted (not universal) — always state the eligibility condition alongside each dollar amount.`);
+  }
+
+  if (categories.includes('Pharmacy / Drug')) {
+    parts.push(`
+  PHARMACY / DRUG (Part D) — look for ALL these fields; report each explicitly:
+  • deductible_stage          → yearly deductible amount + which tiers it applies to (e.g. "Tier 3, 4, 5 only")
+  • deductible_exceptions     → tiers or drug types exempt from deductible (e.g. "covered insulin, adult vaccines: $0 deductible")
+  • initial_coverage_stage    → cost share per tier during initial coverage (copay or coinsurance)
+  • coverage_gap_stage        → cost share during coverage gap / donut hole (25% coinsurance is standard)
+  • catastrophic_stage        → cost share once out-of-pocket threshold is met
+  • out_of_pocket_threshold   → dollar amount to reach catastrophic stage
+  • pharmacy_network          → preferred vs standard retail, mail order
+  • insulin_cost_cap          → "$35/month cap" or "Not applicable"
+  • vaccine_cost_share        → "$0 for most adult Part D vaccines" or specific amount
+  KEY RULE: The deductible amount and which tiers it applies to are the most commonly asked fields — always report both together. "Tier 3, 4, 5" means generic/brand drugs pay the deductible; Tier 1/2 usually do not.`);
   }
 
   if (parts.length === 0) return '';
