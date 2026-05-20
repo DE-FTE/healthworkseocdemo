@@ -866,23 +866,23 @@ After the table, add 2–3 bullet points on notable perks, restrictions, or diff
     iconBg:      '#FFF8E1',
     iconBorder:  '#FFE082',
     title:       'SSBCI / UF Benefits',
-    description: 'Special supplemental benefits — covered categories, eligibility criteria, allowances, access process, and vendor details.',
-    tags:        ['Covered categories', 'Eligibility', 'Allowances', 'Access process', 'Vendor'],
+    description: 'General support for living, eligibility criteria, grocery card, VBID covered language, vendor, exclusions, and wallet structure compared across plans.',
+    tags:        ['General Support', 'Eligibility', 'Grocery Card', 'VBID Language', 'Vendor', 'Wallet'],
     prompt:
-`Analyze SSBCI (Special Supplemental Benefits for the Chronically Ill) and Uniformity Flexibility (UF) benefits for the plans mentioned in scope.
+`Compare SSBCI / UF EOC benefits for the plans in scope.
 
 Present all findings as a single structured comparison table with plan names as columns and benefit attributes as rows. Use "—" for any value not found in the documents.
 
 Include these rows:
-- Covered Services & Benefit Categories
-- Eligibility Criteria / Qualifying Conditions
-- Allowance Amount / Limits
-- Usage Rules (frequency, carryover, expiry)
-- Access Process & Approvals
-- Vendor / Program Name
-- Unclear or Missing Details
+- General Support for Living
+- Eligibility Criteria
+- Food and Produce / Grocery Card
+- SSBCI/VBID Covered Language
+- SSBCI Vendor / Program Name
+- SSBCI Exclusions Language
+- Wallet Structure
 
-After the table, add 2–3 bullet points on example qualifying scenarios (label as interpretation) and any details that were absent or ambiguous in the documents.`,
+After the table, add 2–3 bullet points on notable differences in eligibility conditions or wallet/grocery structures across plans (label any interpretations clearly).`,
   },
 ];
 
